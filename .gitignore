@@ -122,6 +122,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+#IDEs
+.idea/
+.vscode/
+
 # project specific
 data/
 checkpoints/
