@@ -17,6 +17,7 @@ This project is implemented using the recently released Tensorflow 2.0 library (
 
 - **Tensorflow 2.0 (alpha)** ([instructions](https://www.tensorflow.org/alpha/))
 - **NumPy** ([instructions](https://scipy.org/install.html))
+- **Abseil-py** ([guides](https://abseil.io/)
 
 ## References
 
