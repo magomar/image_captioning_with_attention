@@ -1,8 +1,6 @@
 import os
 import sys
 
-import tensorflow as tf
-
 from absl import app
 from absl import flags
 from absl import logging

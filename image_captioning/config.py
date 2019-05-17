@@ -29,7 +29,7 @@ class Config(object):
 
         # about the vocabulary
         # self.vocabulary_file = './data/vocabulary.csv'
-        self.vocabulary_size = 5000
+        self.max_vocabulary_size = 5000
 
         # about the training
         self.train_image_dir = './data/coco/train2014/'

@@ -1,6 +1,8 @@
 import os
 import json
 
+import tensorflow as tf
+
 from absl import logging
 
 def prepare_train_data(config):
@@ -50,12 +52,53 @@ def prepare_train_data(config):
     #     plt.show()
     #     print(captions[i])
 
+    captions = preprocess_captions(captions, config.max_vocabulary_size)
+
     return img_names, captions
 
 
 def prepare_eval_data(config):
     """ Prepare the data for evaluating the model. """
 
+
+def get_tokenizer(captions, vocabulary_size):
+    # choosing the top k words from the vocabulary
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=vocabulary_size,
+                                                    oov_token="<unk>",
+                                                    filters='!"#$%&()*+.,-/:;=?@[\]^_`{|}~ ')
+    tokenizer.fit_on_texts(captions)
+    # adds a padding token
+    tokenizer.word_index['<pad>'] = 0
+    tokenizer.index_word[0] = '<pad>'
+    return tokenizer
+
+def preprocess_captions(captions, max_vocabulary_size):
+    '''Preprocess captions: Donwload COCO dataset'''
+
+    logging.info("Preprocessing captions...")
+
+    # obtains a tokenizer to process captions, limits the vocabulary size
+    tokenizer = get_tokenizer(captions, max_vocabulary_size)
+
+    vocab_size = len(tokenizer.word_index) + 1
+    logging.info("Vocabulary size restricted to %d words", max_vocabulary_size)
+    logging.info("Actual vocabulary size: %d %d", max_vocabulary_size, vocab_size)
+
+    # converts captions to sequences of tokens
+    logging.info("Tokenizing captions...")
+    sequences = tokenizer.texts_to_sequences(captions)
+    logging.info("Tokenized caption example: %s -> %s", captions[0], sequences[0])
+
+    # compute max length of a sequence
+    max_length = max(len(seq) for seq in sequences)
+    logging.info("Max caption length: %d", max_length)
+
+    # pad sequences to met the max length
+    # note: if maxlen parameter is not provided, pad_sequences calculates that automatically
+    logging.info("Padding captions...")
+    captions = tf.keras.preprocessing.sequence.pad_sequences(
+        sequences, maxlen=max_length, padding='post')
+    return captions
 
 def download_coco(config):
     '''Donwload COCO dataset'''
