@@ -8,12 +8,13 @@ from absl import flags
 from absl import logging
 
 from config import Config
+from dataset import prepare_train_data, prepare_eval_data
 
 logging.set_verbosity(logging.DEBUG)
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', 'train',
-                    'The phase can be train, eval or test')
+flags.DEFINE_string('phase', 'prepare',
+                    'The phase can be prepare, train, eval or test')
 
 flags.DEFINE_boolean('load', False,
                         'Turn on to load a pretrained model from either \
@@ -42,6 +43,11 @@ def main(argv):
         logging.get_absl_handler().use_absl_log_file(log_file, FLAGS.log_dir)
 
     logging.info('Running %s phase', config.phase)
+
+    if FLAGS.phase == 'prepare':
+        # preparation phase (extracts and saves image features for later use)
+        img_names, captions = prepare_train_data(config) 
+        
 
 if __name__ == '__main__':
   app.run(main)

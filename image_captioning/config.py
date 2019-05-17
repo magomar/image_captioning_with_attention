@@ -17,6 +17,7 @@ class Config(object):
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
 
         # about the dataset
+        self.num_examples =  10000
         self.buffer_size = 1000
         self.drop_remainder = False
 
