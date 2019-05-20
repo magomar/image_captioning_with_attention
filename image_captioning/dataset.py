@@ -218,7 +218,7 @@ def preprocess_images(image_files, batchsize):
     encode_train = sorted(set(image_files))
     image_dataset = Dataset.from_tensor_slices(encode_train)
     image_dataset = image_dataset.map(
-        load_image_for_preprocessing, num_parallel_calls=tf.data.experimental.AUTOTUNE
+        load_image_inception_v3, num_parallel_calls=tf.data.experimental.AUTOTUNE
         ).batch(batchsize)
 
     logging.info("Extracting image features and saving them to disk")
@@ -233,7 +233,7 @@ def preprocess_images(image_files, batchsize):
             np.save(path_of_feature, bf.numpy())
 
 
-def load_image_for_preprocessing(image_file):
+def load_image_inception_v3(image_file):
     """ Loads an image from file, and transforms it into the Inception-V3 format.
 
     Inception-V3 needs images with shape (299, 299, 3)
