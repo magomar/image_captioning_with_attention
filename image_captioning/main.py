@@ -7,6 +7,7 @@ from absl import logging
 
 from config import Config
 from dataset import prepare_train_data, prepare_eval_data
+from model import build_model
 
 logging.set_verbosity(logging.DEBUG)
 
@@ -25,7 +26,7 @@ flags.DEFINE_string('model_file', None,
 # flags.mark_flag_as_required("phase")
 
 def main(argv):
-    '''python image_captioning/main.py --log_dir log'''
+    """python image_captioning/main.py --log_dir log"""
 
     del argv  # Unused.
     config = Config()
@@ -44,8 +45,8 @@ def main(argv):
 
     if FLAGS.phase == 'prepare':
         # preparation phase (extracts and saves image features for later use)
-        img_names, captions = prepare_train_data(config) 
-        
+        train_dataset = prepare_train_data(config)
+        # model = model.build_model(config)
 
 if __name__ == '__main__':
   app.run(main)
