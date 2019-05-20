@@ -6,18 +6,19 @@ import tensorflow as tf
 
 from absl import logging
 from tqdm import tqdm
-from util import ImageHelper, load_image_for_preprocessing
+from util import ImageHelper
 from tensorflow.data import Dataset
+from tensorflow.keras.applications import InceptionV3
+from tensorflow.keras import Model
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 
 class DataSet(object):
-    """Combines images and captions into a single Dataset object
+    """Combines images and captions into a single Dataset object.
 
     This class builds a tf.data.Dataset with pairs of image files and captions,
     ready for batch processing. It also includes the tokenizer object. 
-
     """
     def __init__(self,
                 name,
@@ -34,13 +35,15 @@ class DataSet(object):
         self.captions = captions
         self.tokenizer = tokenizer
         self.batch_size = batch_size
-        self.shuffle = shuffle
+        self.shuffle = False
         self.buffer_size = buffer_size
         self.drop_remainder = drop_remainder
         self.setup()
 
     def setup(self):
-        """Setup the dataset."""
+        """Setup the dataset.
+
+        """
 
         self.num_instances = len(self.image_files)
         self.num_batches = int(np.ceil(self.num_instances * 1.0 / self.batch_size))
@@ -64,14 +67,13 @@ class DataSet(object):
     
 
 def prepare_train_data(config):
-    """Prepare the data for training the model
+    """Prepare the data for training the model.
     
-    Arguments:
+    Args:
         config (util.Config): Values for various configuration options.
     
     Returns:
         tf.data.Dataset: Training dataset in tensorflow format, ready for batch consumption
-
     """
 
     logging.info("Preparing training data for %s...", config.dataset_name)
@@ -161,7 +163,7 @@ def get_tokenizer(captions, vocabulary_size):
     return tokenizer
 
 def preprocess_captions(captions, max_vocabulary_size):
-    """Tokenize and pad captions, restricted to max vocabulary size
+    """Tokenize and pad captions, restricted to max vocabulary size.
     
     Args:
         captions (list): A list of sentences
@@ -198,16 +200,19 @@ def preprocess_captions(captions, max_vocabulary_size):
     return captions, tokenizer
 
 def preprocess_images(image_files, batchsize):
-    """ Preprocess images. Extract image features and save them as numpy arrays """
+    """Preprocess images. Extract image features and save them as numpy arrays
+    
+    """
+
     logging.info("Preprocessing images...")
 
     # Create feature extraction layer based on pretrained Inception-V3 model
-    image_model = tf.keras.applications.InceptionV3(include_top=False,
+    image_model = InceptionV3(include_top=False,
                                                     weights='imagenet')
     new_input = image_model.input
     hidden_layer = image_model.layers[-1].output
 
-    pretrained_image_model = tf.keras.Model(new_input, hidden_layer)
+    pretrained_image_model = Model(new_input, hidden_layer)
 
     # Create a dataset with images ready to be fed into the encoder in batches 
     encode_train = sorted(set(image_files))
@@ -226,3 +231,37 @@ def preprocess_images(image_files, batchsize):
         for bf, p in zip(batch_features, img_file):
             path_of_feature = p.numpy().decode("utf-8")
             np.save(path_of_feature, bf.numpy())
+
+
+def load_image_for_preprocessing(image_file):
+    """ Loads an image from file, and transforms it into the Inception-V3 format.
+
+    Inception-V3 needs images with shape (299, 299, 3)
+    """
+
+    image = tf.io.read_file(image_file)
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.image.resize(image, (299, 299))
+    image = tf.keras.applications.inception_v3.preprocess_input(image)
+    return image, image_file
+
+def download_coco(config):
+    """Donwload COCO dataset.
+    
+    """
+
+    if not os.path.exists(config.train_caption_dir):
+        captions_zip = tf.keras.utils.get_file('captions.zip',
+                                        cache_subdir=os.path.abspath('./data/coco'),
+                                        origin = 'http://images.cocodataset.org/captions/captions_trainval2014.zip',
+                                        extract = True)
+    if not os.path.exists(config.train_image_dir):
+        image_zip = tf.keras.utils.get_file(name_of_zip,
+                                    cache_subdir=os.path.abspath('./data/coco'),
+                                    origin = 'http://images.cocodataset.org/zips/train2014.zip',
+                                    extract = True)
+    if not os.path.exists(config.eval_image_dir):
+        image_zip = tf.keras.utils.get_file(name_of_zip,
+                                    cache_subdir=os.path.abspath('./data/coco'),
+                                    origin = 'http://images.cocodataset.org/zips/val2014.zip',
+                                    extract = True)

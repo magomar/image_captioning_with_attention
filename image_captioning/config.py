@@ -15,19 +15,20 @@ class Config(object):
         self.weight_initilization_method = 'glorot'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 40
+        self.num_epochs = 20
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
+        self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
         self.dataset_name = 'COCO_2014'
-        self.num_examples =  None
+        self.num_examples =  10000
         self.buffer_size = 1000
-        self.drop_remainder = False
+        self.drop_remainder = True
 
         # about the saver (checkpoint manager)
         # self.save_period = 1000
-        self.max_checkpoints = 5
+        self.max_checkpoints = 40
         self.checkpoints_dir = './models/'
         self.summary_dir = './summary/'
 

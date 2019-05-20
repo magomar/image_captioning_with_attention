@@ -35,36 +35,15 @@ class ImageHelper(object):
 #         image = tf.image.decode_jpeg(image, channels=3)
 #         return image
 
+def plot_loss(losses):
+    plt.plot(losses)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss Plot')
+    plt.show()
+
 def plot_image(image_file):
     image = tf.io.read_file(image_file)
     image = tf.image.decode_jpeg(image, channels=3)
     plt.imshow(image)
     plt.show()
-
-def load_image_for_preprocessing(image_file):
-    """ Loads an image from file, and transforms it into the Inception-V3 format """
-
-    image = tf.io.read_file(image_file)
-    image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.resize(image, (299, 299))
-    image = tf.keras.applications.inception_v3.preprocess_input(image)
-    return image, image_file
-
-def download_coco(config):
-    """ Donwload COCO dataset """
-
-    if not os.path.exists(config.train_caption_dir):
-        captions_zip = tf.keras.utils.get_file('captions.zip',
-                                        cache_subdir=os.path.abspath('./data/coco'),
-                                        origin = 'http://images.cocodataset.org/captions/captions_trainval2014.zip',
-                                        extract = True)
-    if not os.path.exists(config.train_image_dir):
-        image_zip = tf.keras.utils.get_file(name_of_zip,
-                                    cache_subdir=os.path.abspath('./data/coco'),
-                                    origin = 'http://images.cocodataset.org/zips/train2014.zip',
-                                    extract = True)
-    if not os.path.exists(config.eval_image_dir):
-        image_zip = tf.keras.utils.get_file(name_of_zip,
-                                    cache_subdir=os.path.abspath('./data/coco'),
-                                    origin = 'http://images.cocodataset.org/zips/val2014.zip',
-                                    extract = True)

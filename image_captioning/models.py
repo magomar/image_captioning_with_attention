@@ -3,7 +3,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Embedding, GRU
 
 class ImageCaptionModel(object):
-    """Image captioning with attention based on the Show Attend and Tell model
+    """CNN-Encoder + RNN-Decoder model with attention for image captioning.
+
     """
 
     def __init__(self, embedding_dim, rnn_units, tokenizer):
@@ -23,15 +24,17 @@ class ImageCaptionModel(object):
         """Configures the model for training.
         
         Args:
-            optimizer (String (name of optimizer) or optimizer instance): 
-            loss (String (name of objective function) or objective function):
+            optimizer (String): name of optimizer (or optimizer instance)
+            loss (String): name of objective function (or objective function)
         Raises:
             ValueError: In case of invalid arguments for `optimizer`, `loss`
         """
         self.optimizer = optimizers.get
 
+
 class BahdanauAttention(tf.keras.Model):
-    """Attention model based on Bahdanau soft attention model
+    """Attention model based on Bahdanau soft attention model.
+
     """
 
     def __init__(self, units):
@@ -62,6 +65,10 @@ class BahdanauAttention(tf.keras.Model):
 
 class CNN_Encoder(tf.keras.Model):
     """Encoder model to process the image features.
+
+    This encoder assumes images are pretrained using a CNN. 
+    That is, this model only has to add the fully connected layer
+    Instead of images it will receive as inputs the image features from the pretrained model
     """
 
     # We have already extracted the features and saved them as npy arrays
@@ -78,6 +85,7 @@ class CNN_Encoder(tf.keras.Model):
 
 class RNN_Decoder(tf.keras.Model):
     """Decoder model that takes output from encoder and uses RNN to generate captions.
+
     """
 
     def __init__(self, embedding_dim, units, vocab_size):
@@ -124,7 +132,7 @@ class RNN_Decoder(tf.keras.Model):
 
 
 def build_model(tokenizer, config):
-    """Builds end-to-end model with CNN encoder, RNN decoder, and Attention mechanism
+    """Builds end-to-end model with CNN encoder, RNN decoder, and Attention mechanism.
 
     This is a helper method that extracts configuration information from the config object
     
@@ -138,4 +146,3 @@ def build_model(tokenizer, config):
 
     model = ImageCaptionModel(config.embedding_dim, config.rnn_units, tokenizer)
     return model
-
