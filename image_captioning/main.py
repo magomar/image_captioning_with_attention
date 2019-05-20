@@ -1,18 +1,16 @@
 import os
 import sys
 
-from absl import app
-from absl import flags
-from absl import logging
+import tensorflow as tf
 
+from absl import app, flags, logging
 from config import Config
 from dataset import prepare_train_data, prepare_eval_data
-from model import build_model
-
-logging.set_verbosity(logging.DEBUG)
+from models import build_model
+from training import train
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', 'prepare',
+flags.DEFINE_string('phase', None,
                     'The phase can be prepare, train, eval or test')
 
 flags.DEFINE_boolean('load', False,
@@ -23,7 +21,13 @@ flags.DEFINE_string('model_file', None,
                     'If specified, load a pretrained model from this file')
 
 # Required flags
-# flags.mark_flag_as_required("phase")
+flags.mark_flag_as_required("phase")
+
+# Logging
+
+logging.set_verbosity(logging.INFO)
+tflogger = tf.get_logger()
+tflogger.setLevel('ERROR')
 
 def main(argv):
     """python image_captioning/main.py --log_dir log"""
@@ -45,8 +49,14 @@ def main(argv):
 
     if FLAGS.phase == 'prepare':
         # preparation phase (extracts and saves image features for later use)
+        config.extract_image_features = True
         train_dataset = prepare_train_data(config)
-        # model = model.build_model(config)
+    elif FLAGS.phase == 'train':
+        # training phase
+        train_dataset = prepare_train_data(config)
+        tokenizer = train_dataset.tokenizer
+        model = build_model(tokenizer, config)
+        train(model, train_dataset, config)
 
 if __name__ == '__main__':
   app.run(main)
