@@ -48,18 +48,21 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
 
     return ckpt_manager, ckpt
 
-count = 0
-
 @tf.function
 def train_step(model, img_tensor, target, optimizer, loss_object):
     """ One forward propagation step
 
     Args:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
-        img_tensor (tensor): Tensor made of image features, with shape = (batch_size, 64, num_features)
-        target (tensor): tokenized captions, shape = (batch_size, max_captions_length)
-        optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step
-        loss_object (tf.losses.Loss): Object that computes the loss function
+        img_tensor (tensor): Tensor made of image features, with shape = (batch_size, feature_size, num_features).
+            feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
+            the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
+        target (tensor): tokenized captions, shape = (batch_size, max_captions_length).
+            max_captions_length depends on the dataset being used, 
+            for example, in COCO 2014 dataset max_captions_length = 53.
+        optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
+        loss_object (tf.losses.Loss): Object that computes the loss function.
+            Actually only the SparseCategorialCrossentry is supported
         batch_size (integer): Predefined batch size
     
     Returns:
@@ -71,9 +74,6 @@ def train_step(model, img_tensor, target, optimizer, loss_object):
     decoder = model.decoder
     tokenizer = model.tokenizer
     loss = 0
-
-    logging.info("At train step %d img_tensor shape = %s", count, img_tensor.shape)
-    count += 1
 
     # obtain the actual, real batch size for this batch. 
     # it may differ from predefined batchsize when running the last batch of an epoch
@@ -114,20 +114,28 @@ def fit(model, train_dataset, config):
     optimizer = tf.optimizers.get(config.optimizer)
     loss_object = SparseCategoricalCrossentropy(from_logits=True, reduction='none')
 
-    batch_losses = []
-    ckpt_manager, ckpt = get_checkpoint_manager(model, optimizer, config.checkpoints_dir, config.max_checkpoints)
-    status = ckpt.restore(ckpt_manager.latest_checkpoint)
-
     logging.info("Training on %d examples for %d epochs", num_examples, num_epochs)
     logging.info("Divided into %d batches of size %d", num_batches, batch_size)
 
-    if ckpt_manager.latest_checkpoint:
+    resume_training = False
+    if config.resume_from_checkpoint:
+        ckpt_manager, ckpt = get_checkpoint_manager(model, optimizer, config.checkpoints_dir, config.max_checkpoints)
+        status = ckpt.restore(ckpt_manager.latest_checkpoint)
+        if ckpt_manager.latest_checkpoint:
+            # assert_consumed() raises an error because of delayed restoration 
+            # See https://www.tensorflow.org/alpha/guide/checkpoints#delayed_restorations
+            # status.assert_consumed() 
+            status.assert_existing_objects_matched()
+            resume_training = True
+    
+    if resume_training:
         start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
         logging.info("Resuming training from epoch %d", start_epoch) 
     else:
         start_epoch = 0
         logging.info("Starting training from scratch")
 
+    batch_losses = []
 
     for epoch in range(start_epoch, num_epochs):
         start = time.time()
