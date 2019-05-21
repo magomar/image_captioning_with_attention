@@ -35,9 +35,7 @@ class DataSet(object):
         self.captions = captions
         self.tokenizer = tokenizer
         self.batch_size = batch_size
-        # TODO: replace by self.shuffle = True when shuffling is fixed in TF2
-        # see https://github.com/tensorflow/tensorflow/issues/28552
-        self.shuffle = False
+        self.shuffle = shuffle
         self.buffer_size = buffer_size
         self.drop_remainder = drop_remainder
         self.setup()
@@ -168,9 +166,9 @@ def prepare_train_data(config):
 
     logging.info("Preparing training data for %s...", config.dataset_name)
 
-    # obtaining the raw captions and the image files
-    __, image_files, text_captions = get_raw_data(
-        config.train_image_dir,config.train_image_dir, config.train_image_prefix)
+    # obtaining the image ids, image files and text captions
+    image_ids, image_files, text_captions = get_raw_data(
+        config.train_image_dir, config.train_caption_file, config.train_image_prefix)
 
     logging.info("Number of instances in the training set: %d", len(image_files))
 
@@ -214,22 +212,11 @@ def prepare_eval_data(config):
     
     logging.info("Preparing validation data for %s...", config.dataset_name)
 
-    ## obtaining the raw captions and the image files
-    __, image_files, text_captions = get_raw_data(
-        config.eval_image_dir,config.eval_image_dir, config.eval_image_prefix)
+   # obtaining the image ids, image files and text captions
+    image_ids, image_files, text_captions = get_raw_data(
+        config.eval_image_dir, config.eval_caption_file, config.eval_image_prefix)
 
     logging.info("Number of instances in the evaluation set: %d", len(image_files))
-
-    # selecting the first num_examples from the shuffled sets
-    num_examples = config.num_examples
-    if num_examples is not None:
-        logging.info("Using just %d instances for training", num_examples)
-        # perhaps shuffling the captions and image_names together, setting a random state
-        image_files, text_captions = shuffle_lists(image_files, text_captions)
-        image_files = image_files[:num_examples]
-        text_captions = text_captions[:num_examples]
-    else:
-        logging.info("Using full training dataset")
     
     captions, tokenizer = preprocess_captions(text_captions, config.max_vocabulary_size)
 
@@ -240,7 +227,7 @@ def prepare_eval_data(config):
         captions,
         tokenizer,
         config.batch_size,
-        shuffle= True,
+        shuffle= False,
         buffer_size= config.buffer_size,
         drop_remainder= config.drop_remainder
     )
@@ -259,7 +246,7 @@ def get_tokenizer(text_captions, vocabulary_size):
         vocabulary_size {integer} -- [description]
     
     Returns:
-        tf.keras.preprocessing.text.Tokenizer -- Tokenizer fitted to the input `captions`
+        tf.keras.preprocessing.text.Tokenizer -- Tokenizer fitted to the provided `text_captions`
     """
     # choosing the top k words from the vocabulary
     tokenizer = Tokenizer(num_words=vocabulary_size,
@@ -294,8 +281,7 @@ def preprocess_captions(text_captions, max_vocabulary_size):
 
     # converts captions to sequences of tokens
     logging.info("Tokenizing captions...")
-    sequences = tokenizer.texts_to_sequences(captions)
-    logging.info("Tokenized caption example: %s -> %s", captions[0], sequences[0])
+    sequences = tokenizer.texts_to_sequences(text_captions)
 
     # compute max length of a sequence
     max_length = max(len(seq) for seq in sequences)
