@@ -5,7 +5,7 @@ class Config(object):
 
     def __init__(self):
         # about the model architecture
-        self.cnn = 'inception_v3'               # 'inception_v3', vgg16' or 'resnet50'
+        self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
         self.rnn = 'gru'                        #  'gru' or 'lstm'
         self.max_caption_length = 20
         self.embedding_dim = 256

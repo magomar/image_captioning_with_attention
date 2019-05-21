@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from tensorflow.keras import Model
+from tensorflow.keras.applications import InceptionV3, NASNetLarge
 from tensorflow.keras.layers import Dense, Embedding, GRU
 
 class ImageCaptionModel(object):
@@ -146,3 +148,16 @@ def build_model(tokenizer, config):
 
     model = ImageCaptionModel(config.embedding_dim, config.rnn_units, tokenizer)
     return model
+
+def get_image_features_extract_model(cnn_name):
+    if cnn_name == 'inception_v3':
+         # Create feature extraction layer based on pretrained Inception-V3 model
+        image_model = InceptionV3(include_top=False, weights='imagenet')
+    elif cnn_name == 'nasnet':
+        image_model = NASNetLarge(include_top=False, weights='imagenet')
+    new_input = image_model.input
+    hidden_layer = image_model.layers[-1].output
+    pretrained_image_model = Model(new_input, hidden_layer)
+    return pretrained_image_model
+
+    

@@ -5,11 +5,10 @@ import numpy as np
 import tensorflow as tf
 
 from absl import logging
+from models import get_image_features_extract_model
 from tqdm import tqdm
 from util import ImageHelper, shuffle_lists
 from tensorflow.data import Dataset
-from tensorflow.keras.applications import InceptionV3
-from tensorflow.keras import Model
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -109,22 +108,24 @@ def preprocess_images(config):
     train_image_ids, train_image_files, train_raw_captions = get_raw_data(
         config.train_image_dir, config.train_caption_file, config.train_image_prefix)
 
-        # Obtain image files for evaluation dataset
+    # Obtain image files for evaluation dataset
     eval_image_ids, eval_image_files, eval_raw_captions = get_raw_data(
         config.eval_image_dir, config.eval_caption_file, config.eval_image_prefix)
 
-    # Create feature extraction layer based on pretrained Inception-V3 model
-    image_model = InceptionV3(include_top=False, weights='imagenet')
-    new_input = image_model.input
-    hidden_layer = image_model.layers[-1].output
-    pretrained_image_model = Model(new_input, hidden_layer)
+    # Create feature extraction layer
+    pretrained_image_model = get_image_features_extract_model(config.cnn)
 
     # Create a dataset with images ready to be fed into the encoder in batches 
     encode_set = sorted(set(train_image_files + eval_image_files))
     image_dataset = Dataset.from_tensor_slices(encode_set)
-    image_dataset = image_dataset.map(
-        load_image_inception_v3, num_parallel_calls=tf.data.experimental.AUTOTUNE
-        ).batch(batchsize)
+    if config.cnn == 'inception_v3':
+        image_dataset = image_dataset.map(
+            load_image_inception_v3, num_parallel_calls=tf.data.experimental.AUTOTUNE
+            ).batch(batchsize)
+    elif config.cnn == 'nasnet':
+        image_dataset = image_dataset.map(
+            load_image_nasnet, num_parallel_calls=tf.data.experimental.AUTOTUNE
+            ).batch(batchsize)
 
     logging.info("Extracting image features and saving them to disk")
 
@@ -280,15 +281,40 @@ def preprocess_captions(captions, max_vocabulary_size):
     return captions, tokenizer
 
 def load_image_inception_v3(image_file):
-    """ Loads an image from file, and transforms it into the Inception-V3 format.
+    """Loads an image from file, and transforms it into the Inception-V3 format.
+    
+    Image data should be reshaped to (299, 299, 3)
 
-    Inception-V3 needs images with shape (299, 299, 3)
+    Arguments:
+        image_file {String} -- Path to image file
+    
+    Returns:
+        tensor -- Image features with shape (8, 8, 2048)
     """
 
     image = tf.io.read_file(image_file)
     image = tf.image.decode_jpeg(image, channels=3)
     image = tf.image.resize(image, (299, 299))
     image = tf.keras.applications.inception_v3.preprocess_input(image)
+    return image, image_file
+
+def load_image_nasnet(image_file):
+    """Loads an image from file, and transforms it into the NASNet format.
+    
+    Image data should be reshaped to (299, 299, 3)
+
+    Arguments:
+        image_file {String} -- Path to image file
+    
+    Returns:
+        tensor -- Image features with shape (, 4032)
+    """
+    
+
+    image = tf.io.read_file(image_file)
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.image.resize(image, (299, 299))
+    image = tf.keras.applications.nasnet.preprocess_input(image)
     return image, image_file
 
 def download_coco(config):

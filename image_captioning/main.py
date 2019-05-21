@@ -8,6 +8,7 @@ from config import Config
 from dataset import preprocess_images, prepare_train_data, prepare_eval_data
 from models import build_model
 from training import train
+from inference import evaluate_model
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('phase', None,
