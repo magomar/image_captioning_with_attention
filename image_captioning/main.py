@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from absl import app, flags, logging
 from config import Config
-from dataset import prepare_train_data, prepare_eval_data
+from dataset import preprocess_images, prepare_train_data, prepare_eval_data
 from models import build_model
 from training import train
 
@@ -30,10 +30,8 @@ flags.DEFINE_integer('examples', None,
 flags.mark_flag_as_required("phase")
 
 # Logging
-
 logging.set_verbosity(logging.INFO)
-tflogger = tf.get_logger()
-tflogger.setLevel('ERROR')
+tf.get_logger().setLevel('ERROR')
 
 def main(argv):
     """python image_captioning/main.py --train --log_dir log
@@ -64,10 +62,9 @@ def main(argv):
 
     logging.info('Running %s phase', config.phase)
 
-    if FLAGS.phase == 'prepare':
+    if FLAGS.phase == 'prepare' or config.extract_image_features:
         # preparation phase (extracts and saves image features for later use)
-        config.extract_image_features = True
-        train_dataset = prepare_train_data(config)
+        preprocess_images(config)
     elif FLAGS.phase == 'train':
         # training phase
         train_dataset = prepare_train_data(config)
