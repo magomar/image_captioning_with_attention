@@ -5,10 +5,9 @@ import tensorflow as tf
 
 from absl import app, flags, logging
 from config import Config
-from dataset import preprocess_images, prepare_train_data, prepare_eval_data
-from models import build_model
+from dataset import preprocess_images
+from evaluation import evaluate
 from training import train
-from inference import evaluate_model
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('phase', None,
@@ -66,12 +65,13 @@ def main(argv):
     if FLAGS.phase == 'prepare' or config.extract_image_features:
         # preparation phase (extracts and saves image features for later use)
         preprocess_images(config)
-    elif FLAGS.phase == 'train':
-        # training phase
-        train_dataset = prepare_train_data(config)
-        tokenizer = train_dataset.tokenizer
-        model = build_model(tokenizer, config)
-        train(model, train_dataset, config)
+
+    elif FLAGS.phase == 'train': 
+        # training phase: build and trains an image captioning model
+        train(config)
+    elif FLAGS.phase == 'eval':
+        # evaluation phase: evaluates a saved model on the validation data
+        evaluate(config)
 
 if __name__ == '__main__':
   app.run(main)

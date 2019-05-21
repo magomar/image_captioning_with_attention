@@ -7,13 +7,13 @@ from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.train import Checkpoint, CheckpointManager
 from util import plot_loss
 
-def loss_function(labels, predictions, loss_object):
-    """Computes loss given labels, predictions and a loss function
+def compute_loss(labels, predictions, loss_function):
+    """Computes loss given labels, predictions and a loss function.
     
     Args:
         labels (tensor): ground-truth values
         predictions (tensor): predicted values
-        loss_object (tf.keras.losses.Loss): object implementing a loss function, eg. MAE
+        loss_function (tf.keras.losses.Loss): object implementing a loss function, eg. MAE
     
     Returns:
         tensor: computed loss values
@@ -21,7 +21,7 @@ def loss_function(labels, predictions, loss_object):
     """
 
     mask = tf.math.logical_not(tf.math.equal(labels, 0))
-    loss_ = loss_object(labels, predictions)
+    loss_ = loss_function(labels, predictions)
 
     mask = tf.cast(mask, dtype=loss_.dtype)
     loss_ *= mask
@@ -29,7 +29,7 @@ def loss_function(labels, predictions, loss_object):
     return tf.reduce_mean(loss_)
 
 def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
-    """Obtains a checkpoint manager to save the model while training
+    """Obtains a checkpoint manager to save the model while training.
     
     Args:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
@@ -39,7 +39,6 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
     Returns:
         tf.train.CheckpointManager, tf.train.Ckeckpoint
     """
-
     
     ckpt = Checkpoint(encoder = model.encoder,
                       decoder = model.decoder,
@@ -49,8 +48,8 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
     return ckpt_manager, ckpt
 
 @tf.function
-def train_step(model, img_tensor, target, optimizer, loss_object):
-    """ One forward propagation step
+def train_step(model, img_tensor, target, optimizer, loss_function):
+    """Forward propagation step.
 
     Args:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
@@ -61,7 +60,7 @@ def train_step(model, img_tensor, target, optimizer, loss_object):
             max_captions_length depends on the dataset being used, 
             for example, in COCO 2014 dataset max_captions_length = 53.
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
-        loss_object (tf.losses.Loss): Object that computes the loss function.
+        loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
         batch_size (integer): Predefined batch size
     
@@ -92,7 +91,7 @@ def train_step(model, img_tensor, target, optimizer, loss_object):
 
             # passing the features through the decoder
             predictions, hidden, _ = decoder(dec_input, features, hidden)
-            loss += loss_function(target[:, i], predictions, loss_object)
+            loss += compute_loss(target[:, i], predictions, loss_function)
             # using teacher forcing
             dec_input = tf.expand_dims(target[:, i], 1)
 
@@ -105,14 +104,23 @@ def train_step(model, img_tensor, target, optimizer, loss_object):
 
 
 def fit(model, train_dataset, config):
-
+    """Fits the model for the given dataset
+    
+    Arguments:
+        model {models.ImageCaptionModel} -- The full image captioning model
+        train_dataset {dataset.DataSet} -- Container for the dataset and related info
+        config (util.Config): Values for various configuration options
+    
+    Returns:
+        list -- List of losses per batch of training
+    """
     dataset = train_dataset.dataset
     num_examples = train_dataset.num_instances
     batch_size = train_dataset.batch_size
     num_batches = train_dataset.num_batches
     num_epochs = config.num_epochs
     optimizer = tf.optimizers.get(config.optimizer)
-    loss_object = SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+    loss_function = SparseCategoricalCrossentropy(from_logits=True, reduction='none')
 
     logging.info("Training on %d examples for %d epochs", num_examples, num_epochs)
     logging.info("Divided into %d batches of size %d", num_batches, batch_size)
@@ -143,7 +151,7 @@ def fit(model, train_dataset, config):
         
         # training steps for one epoch
         for (batch, (img_tensor, target)) in enumerate(dataset):
-            batch_loss, t_loss = train_step(model, img_tensor, target, optimizer, loss_object)
+            batch_loss, t_loss = train_step(model, img_tensor, target, optimizer, loss_function)
             total_loss += t_loss
 
             if batch % 100 == 0:
@@ -161,9 +169,23 @@ def fit(model, train_dataset, config):
 
     return batch_losses
 
-def train(model, train_dataset, config):
+def train(config):
+    """Orchestrates the training process.
+    
+    This method is responsible of executing all the steps required to train a new model, 
+    which includes:
+    - Preparing the dataset
+    - Building the model
+    - Fitting the model to the data
+
+    Arguments:
+        config (util.Config): Values for various configuration options
+    """
+    train_dataset = prepare_train_data(config)
+    tokenizer = train_dataset.tokenizer
+    model = build_model(tokenizer, config)
     start = time.time()
-    losses = fit(model, train_dataset,config)
+    losses = fit(model, train_dataset, config)
     logging.info('Total training time: %d seconds', time.time() - start)
     logging.info ('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
     plot_loss(losses)

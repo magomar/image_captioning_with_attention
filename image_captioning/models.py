@@ -95,7 +95,7 @@ class RNN_Decoder(tf.keras.Model):
         self.units = units
 
         self.embedding = Embedding(vocab_size, embedding_dim)
-        self.gru = GRU(self.units,
+        self.rnn = GRU(self.units,
                                        return_sequences=True,
                                        return_state=True,
                                        recurrent_initializer='glorot_uniform')
@@ -116,7 +116,7 @@ class RNN_Decoder(tf.keras.Model):
         x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
         # passing the concatenated vector to the GRU
-        output, state = self.gru(x)
+        output, state = self.rnn(x)
 
         # shape == (batch_size, max_length, hidden_size)
         x = self.fc1(output)

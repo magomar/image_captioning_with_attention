@@ -17,8 +17,9 @@ class DataSet(object):
     """Combines images and captions into a single Dataset object.
 
     This class builds a tf.data.Dataset with pairs of image files and captions,
-    ready for batch processing. It also includes the tokenizer object. 
+    ready for batch processing. It also includes the tokenizer object.
     """
+    
     def __init__(self,
                 name,
                 image_ids,
@@ -68,8 +69,19 @@ class DataSet(object):
     
 
 def get_raw_data(image_dir, caption_file, image_prefix):
+    """Get raw data to build a dataset.
+    
+    Arguments:
+        image_dir {String} -- Relative path of folder with the images
+        caption_file {String} -- Relative path of JSON file with the captions
+        image_prefix {String} -- Prefix used to name image files (prepended to image identifiers)
+    
+    Returns:
+        A list of image identifiers, image files and raw captions
+    """
+
     image_ids = []
-    raw_captions = []
+    text_captions = []
 
     # read the json file with the raw captions
     with open(os.path.abspath(caption_file), 'r') as f:
@@ -79,15 +91,17 @@ def get_raw_data(image_dir, caption_file, image_prefix):
         caption = '<start> ' + annot['caption'] + ' <end>'
         img_id = annot['image_id']
         image_ids.append(img_id)
-        raw_captions.append(caption)
+        text_captions.append(caption)
 
     image_helper = ImageHelper(image_dir, image_prefix)
     image_files = [image_helper.get_image_file(img_id) for img_id in image_ids]
 
-    return image_ids, image_files, raw_captions
+    return image_ids, image_files, text_captions
 
 def map_image_features_to_caption(image_file, caption):
-    """ Load image features from npy file and maps them to caption """
+    """ Load image features from npy file and maps them to caption.
+    
+    """
 
     image_features = np.load(image_file.decode('utf-8')+'.npy')
     return image_features, caption
@@ -96,20 +110,23 @@ def preprocess_images(config):
     """Extract image features and save them as numpy arrays.
     
     This will process both the training and the validation datasets.
+    
+    Arguments:
+        config (util.Config): Values for various configuration options.
     """
 
-    logging.info("Preprocessing images...")
+    logging.info("Preprocessing images (extracting image features)...")
 
     batchsize = config.image_features_batchsize
     # TODO save image features in specific folder (config.features_dir)
     # features_path = os.path.abspath(config.image_features_dir)
 
     # Obtain image files for training dataset
-    train_image_ids, train_image_files, train_raw_captions = get_raw_data(
+    train_image_ids, train_image_files, train_text_captions = get_raw_data(
         config.train_image_dir, config.train_caption_file, config.train_image_prefix)
 
     # Obtain image files for evaluation dataset
-    eval_image_ids, eval_image_files, eval_raw_captions = get_raw_data(
+    eval_image_ids, eval_image_files, eval_text_captions = get_raw_data(
         config.eval_image_dir, config.eval_caption_file, config.eval_image_prefix)
 
     # Create feature extraction layer
@@ -152,7 +169,7 @@ def prepare_train_data(config):
     logging.info("Preparing training data for %s...", config.dataset_name)
 
     # obtaining the raw captions and the image files
-    __, image_files, raw_captions = get_raw_data(
+    __, image_files, text_captions = get_raw_data(
         config.train_image_dir,config.train_image_dir, config.train_image_prefix)
 
     logging.info("Number of instances in the training set: %d", len(image_files))
@@ -162,13 +179,13 @@ def prepare_train_data(config):
     if num_examples is not None:
         logging.info("Using just %d instances for training", num_examples)
         # perhaps shuffling the captions and image_names together, setting a random state
-        image_files, raw_captions = shuffle_lists(image_files, raw_captions)
+        image_files, text_captions = shuffle_lists(image_files, text_captions)
         image_files = image_files[:num_examples]
-        raw_captions = raw_captions[:num_examples]
+        text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full training dataset")
     
-    captions, tokenizer = preprocess_captions(raw_captions, config.max_vocabulary_size)
+    captions, tokenizer = preprocess_captions(text_captions, config.max_vocabulary_size)
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Training'),
@@ -198,7 +215,7 @@ def prepare_eval_data(config):
     logging.info("Preparing validation data for %s...", config.dataset_name)
 
     ## obtaining the raw captions and the image files
-    __, image_files, raw_captions = get_raw_data(
+    __, image_files, text_captions = get_raw_data(
         config.eval_image_dir,config.eval_image_dir, config.eval_image_prefix)
 
     logging.info("Number of instances in the evaluation set: %d", len(image_files))
@@ -208,13 +225,13 @@ def prepare_eval_data(config):
     if num_examples is not None:
         logging.info("Using just %d instances for training", num_examples)
         # perhaps shuffling the captions and image_names together, setting a random state
-        image_files, raw_captions = shuffle_lists(image_files, raw_captions)
+        image_files, text_captions = shuffle_lists(image_files, text_captions)
         image_files = image_files[:num_examples]
-        raw_captions = raw_captions[:num_examples]
+        text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full training dataset")
     
-    captions, tokenizer = preprocess_captions(raw_captions, config.max_vocabulary_size)
+    captions, tokenizer = preprocess_captions(text_captions, config.max_vocabulary_size)
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Training'),
@@ -231,23 +248,34 @@ def prepare_eval_data(config):
     return dataset
 
 
-def get_tokenizer(captions, vocabulary_size):
+def get_tokenizer(text_captions, vocabulary_size):
+    """Obtains a tokenizer for the given captions.
     
+    The tokenizer if fitted to the `text_captions`, and vocabulary is restricted by
+    to the most frequent words, with a maximum of `vocabulary_size` words.
+    
+    Arguments:
+        captions {list} -- List of raw captions (non tokenized text)
+        vocabulary_size {integer} -- [description]
+    
+    Returns:
+        tf.keras.preprocessing.text.Tokenizer -- Tokenizer fitted to the input `captions`
+    """
     # choosing the top k words from the vocabulary
     tokenizer = Tokenizer(num_words=vocabulary_size,
                             oov_token="<unk>",
                             filters='!"#$%&()*+.,-/:;=?@[\]^_`{|}~ ')
-    tokenizer.fit_on_texts(captions)
+    tokenizer.fit_on_texts(text_captions)
     # adds a padding token
     tokenizer.word_index['<pad>'] = 0
     tokenizer.index_word[0] = '<pad>'
     return tokenizer
 
-def preprocess_captions(captions, max_vocabulary_size):
+def preprocess_captions(text_captions, max_vocabulary_size):
     """Tokenize and pad captions, restricted to max vocabulary size.
     
     Args:
-        captions (list): A list of sentences
+        text_captions (list): A list of sentences
         max_vocabulary_size (integer): Max vocabulary size
     
     Returns:
@@ -258,7 +286,7 @@ def preprocess_captions(captions, max_vocabulary_size):
     logging.info("Preprocessing captions...")
 
     # obtains a tokenizer to process captions, limits the vocabulary size
-    tokenizer = get_tokenizer(captions, max_vocabulary_size)
+    tokenizer = get_tokenizer(text_captions, max_vocabulary_size)
 
     vocab_size = len(tokenizer.word_index) + 1
     logging.info("Full vocabulary size: %d", vocab_size)
@@ -310,7 +338,6 @@ def load_image_nasnet(image_file):
         tensor -- Image features with shape (, 4032)
     """
     
-
     image = tf.io.read_file(image_file)
     image = tf.image.decode_jpeg(image, channels=3)
     image = tf.image.resize(image, (299, 299))
