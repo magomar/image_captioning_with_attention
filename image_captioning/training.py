@@ -50,21 +50,20 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
     return ckpt_manager, ckpt
 
 @tf.function
-def train_step(model, img_tensor, target, optimizer, loss_function):
-    """Forward propagation step.
+def train_step(model, img_features, target, optimizer, loss_function):
+    """Forward propagation pass for training.
 
     Args:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
-        img_tensor (tensor): Tensor made of image features, with shape = (batch_size, feature_size, num_features).
+        img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
             the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
-        target (tensor): tokenized captions, shape = (batch_size, max_captions_length).
+        target (tensor): Minibatch of tokenized captions, shape = (batch_size, max_captions_length).
             max_captions_length depends on the dataset being used, 
             for example, in COCO 2014 dataset max_captions_length = 53.
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
         loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
-        batch_size (integer): Predefined batch size
     
     Returns:
         loss: loss value for all the 
@@ -76,22 +75,25 @@ def train_step(model, img_tensor, target, optimizer, loss_function):
     tokenizer = model.tokenizer
     loss = 0
 
-    # obtain the actual, real batch size for this batch. 
-    # it may differ from predefined batchsize when running the last batch of an epoch
+    # Obtain the actual size of this batch, since it may differ from predefined batchsize
+    # when running the last batch of an epoch
     actual_batch_size=target.shape[0]
     sequence_length=target.shape[1]
 
-    # initializing the hidden state for each batch
-    # because the captions are not related from image to image
+    # Initializing the hidden state for each batch, since captions are not related from image to image
     hidden = decoder.reset_state(batch_size=actual_batch_size)
 
+    # Expand
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
 
+    # Open a GradientTape to record the operations run during the forward pass, 
+    # which enables autodifferentiation.
     with tf.GradientTape() as tape:
-        features = encoder(img_tensor)
+        # Passes visual features through encoder
+        features = encoder(img_features)
         for i in range(1, sequence_length):
 
-            # passing the features through the decoder
+            # Passing input, features and hidden state through the decoder
             predictions, hidden, _ = decoder(dec_input, features, hidden)
             loss += compute_loss(target[:, i], predictions, loss_function)
             # using teacher forcing
@@ -116,17 +118,22 @@ def fit(model, train_dataset, config):
     Returns:
         list -- List of losses per batch of training
     """
+
+    # Get the training dataset.
     dataset = train_dataset.dataset
     num_examples = train_dataset.num_instances
     batch_size = train_dataset.batch_size
     num_batches = train_dataset.num_batches
     num_epochs = config.num_epochs
+    # Instantiate an optimizer.
     optimizer = tf.optimizers.get(config.optimizer)
+    # Instantiate a loss function.
     loss_function = SparseCategoricalCrossentropy(from_logits=True, reduction='none')
 
     logging.info("Training on %d examples for %d epochs", num_examples, num_epochs)
     logging.info("Divided into %d batches of size %d", num_batches, batch_size)
 
+    # Try to resume training from saved checkpoints
     resume_training = False
     if config.resume_from_checkpoint:
         ckpt_manager, ckpt = get_checkpoint_manager(model, optimizer, config.checkpoints_dir, config.max_checkpoints)
@@ -147,26 +154,29 @@ def fit(model, train_dataset, config):
 
     batch_losses = []
 
+    # Iterate over epochs.
     for epoch in range(start_epoch, num_epochs):
         start = time.time()
         total_loss = 0
         
-        # training steps for one epoch
-        for (batch, (img_tensor, target)) in enumerate(dataset):
-            batch_loss, t_loss = train_step(model, img_tensor, target, optimizer, loss_function)
+        # Iterate over the batches of the dataset.
+        for (batch, (img_features, target)) in enumerate(dataset):
+            batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
             total_loss += t_loss
 
             if batch % 100 == 0:
                 caption_length = int(target.shape[1])
                 logging.info('Epoch %d Batch %d/%d Loss: %.4f',
                     epoch + 1, batch, num_batches, batch_loss.numpy() / caption_length)
-        # storing the epoch end loss value to plot later
+        # Storing the epoch end loss value to plot later
         batch_losses.append(total_loss / num_batches)
 
         # if epoch % 5 == 0:
         #     ckpt_manager.save()
         logging.info ('Epoch %d Loss %.6f', epoch + 1, total_loss / num_batches)
         logging.info ('Time taken for 1 epoch: %d sec\n', time.time() - start)
+
+        # Save checkpoint for the last epoch
         ckpt_manager.save()
 
     return batch_losses
