@@ -1,5 +1,6 @@
 import time
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from absl import logging
@@ -7,6 +8,7 @@ from dataset import prepare_train_data
 from models import build_model
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.train import Checkpoint, CheckpointManager
+from tqdm import tqdm
 
 def compute_loss(labels, predictions, loss_function):
     """Computes loss given labels, predictions and a loss function.
@@ -159,14 +161,14 @@ def fit(model, train_dataset, config):
         total_loss = 0
         
         # Iterate over the batches of the dataset.
-        for (batch, (img_features, target)) in enumerate(dataset):
+        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):
             batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
             total_loss += t_loss
 
-            if batch % 100 == 0:
-                caption_length = int(target.shape[1])
-                logging.info('Epoch %d Batch %d/%d Loss: %.4f',
-                    epoch + 1, batch, num_batches, batch_loss.numpy() / caption_length)
+            # if batch % 100 == 0:
+            #     caption_length = int(target.shape[1])
+            #     logging.info('Epoch %d Batch %d/%d Loss: %.4f',
+            #         epoch + 1, batch, num_batches, batch_loss.numpy() / caption_length)
         # Storing the epoch end loss value to plot later
         batch_losses.append(total_loss / num_batches)
 

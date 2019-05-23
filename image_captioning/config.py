@@ -15,16 +15,14 @@ class Config(object):
         self.weight_initilization_method = 'glorot'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 40
+        self.num_epochs = 20
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
         self.dataset_name = 'COCO_2014'
-        self.num_examples =  None
         self.buffer_size = 1000
-        self.drop_remainder = True
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
@@ -42,10 +40,12 @@ class Config(object):
 
         # about the training
         self.resume_from_checkpoint = True
+        self.num_train_examples =  10000
         self.train_image_dir = './data/coco/train2014/'
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
+        self.num_eval_examples =  2000
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './val/results/'

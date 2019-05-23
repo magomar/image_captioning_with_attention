@@ -70,16 +70,16 @@ class Vocabulary(object):
 
         # Tokenize sentences (convert them to sequences of indexes)
         sequences = self.tokenizer.texts_to_sequences(sentences)
-        max_sequence_length = max(len(seq) for seq in sequences)
-        logging.info("Max caption length: %d", max_sequence_length)
+        max_length = max_sequence_length(sequences)
+        logging.info("Max caption length: %d", max_length)
         if self.sentence_length is None:
-            self.sentence_length = max_sequence_length
+            self.sentence_length = max_length
         else:
             logging.info("But it is set to : %d", self.sentence_length)
         # Pad sequences to met the max length.
         # If maxlen parameter is not provided, it is computed automatically
         sequences = pad_sequences(sequences, maxlen=self.sentence_length, padding='post')
-        return sequences, max
+        return sequences
 
     def save(self, save_file):
         """ Save the vocabulary to a file.
@@ -108,3 +108,6 @@ def build_vocabulary(config):
     logging.info("Vocabulary size = %d" %(vocabulary.size))   
     logging.info("Num words: %d", len(vocabulary.tokenizer.word_index) + 1)
     return vocabulary
+
+def max_sequence_length(sequences):
+    return max(len(seq) for seq in sequences)
