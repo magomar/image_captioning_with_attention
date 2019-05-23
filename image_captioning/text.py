@@ -50,6 +50,9 @@ class Vocabulary(object):
         # adds a padding token
         self.tokenizer.word_index['<pad>'] = 0
         self.tokenizer.index_word[0] = '<pad>'
+        num_words = len(self.tokenizer.word_index) + 1
+        if self.size > num_words:
+            self.size = num_words
 
 
     def process_sentence(self, sentence):
@@ -94,19 +97,21 @@ class Vocabulary(object):
         with open(save_file, 'rb') as handle:
             self.tokenizer = pickle.load(handle)
 
-def build_vocabulary(config):
-    """ Build the vocabulary from the training data and save it to a file.
-    
-    """
-    coco = COCO(config.train_captions_file)
-    text_captions = coco.get_text_captions()
-    logging.info("Building the vocabulary...")
+def load_or_build_vocabulary(config, sentences = None):
     vocabulary = Vocabulary(config.vocabulary_size)
-    vocabulary.build(text_captions)
-    vocabulary.save(config.vocabulary_file)
-    logging.info("Vocabulary built and saved to %s." % config.vocabulary_file)
-    logging.info("Vocabulary size = %d" %(vocabulary.size))   
+    if not os.path.exists(config.vocabulary_file):
+        if sentences is None:
+            coco = COCO(config.train_captions_file)
+            sentences = coco.get_text_captions()
+        logging.info("Building the vocabulary...")
+        vocabulary.build(sentences)
+        vocabulary.save(config.vocabulary_file)
+        logging.info("Vocabulary saved to %s." % config.vocabulary_file)
+    else:
+        logging.info("Loading vocabulary from %s.", config.vocabulary_file)
+        vocabulary.load(config.vocabulary_file)
     logging.info("Num words: %d", len(vocabulary.tokenizer.word_index) + 1)
+    logging.info("Vocabulary size = %d" %(vocabulary.size))
     return vocabulary
 
 def max_sequence_length(sequences):

@@ -11,7 +11,7 @@ def test_step(model, img_features, target, loss_function):
     """Forward propagation pass for testing.
 
     Arguments:
-        model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
+        model (mode.ImageCaptionModel): object containing encoder and decoder
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
             the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
@@ -20,6 +20,7 @@ def test_step(model, img_features, target, loss_function):
             for example, in COCO 2014 dataset max_captions_length = 53.
         loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
+        tokenizer (tf.keras.preprocessing.text.Tokenizer): Object used to tokenize the captions
     
     Returns:
         loss: loss value for all the 
@@ -74,7 +75,6 @@ def evaluate(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
-
     if not os.path.exists(config.eval_result_dir):
             os.mkdir(config.eval_result_dir)
 

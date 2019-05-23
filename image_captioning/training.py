@@ -55,7 +55,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
     """Forward propagation pass for training.
 
     Arguments:
-        model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
+        model (mode.ImageCaptionModel): object containing encoder and decoder
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
             the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
@@ -65,6 +65,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
         loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
+        tokenizer (tf.keras.preprocessing.text.Tokenizer): Object used to tokenize the captions
     
     Returns:
         loss: loss value for all the 
@@ -117,7 +118,7 @@ def fit(model, train_dataset, config):
         config (util.Config): Values for various configuration options
     
     Returns:
-        list -- List of losses per batch of training
+        list of float -- List of losses per batch of training
     """
 
     # Get the training dataset.
@@ -202,7 +203,7 @@ def train(config):
         config (util.Config): Values for various configuration options
     """
     train_dataset, vocabulary = prepare_train_data(config)
-    model = build_model(config, vocabulary.tokenizer)
+    model = build_model(config, vocabulary)
     start = time.time()
     losses = fit(model, train_dataset, config)
     logging.info('Total training time: %d seconds', time.time() - start)

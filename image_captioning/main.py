@@ -7,7 +7,7 @@ from absl import app, flags, logging
 from config import Config
 from images import preprocess_images
 from evaluation import evaluate
-from text import build_vocabulary
+from text import load_or_build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
@@ -65,7 +65,7 @@ def main(argv):
 
     if FLAGS.phase == 'prepare':
         # build vocabulary
-        build_vocabulary(config)
+        load_or_build_vocabulary(config)
         # extracts and saves image features for later use
         if config.extract_image_features:
             preprocess_images(config)

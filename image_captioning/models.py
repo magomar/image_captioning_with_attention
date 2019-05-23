@@ -9,19 +9,17 @@ class ImageCaptionModel(object):
 
     """
 
-    def __init__(self, embedding_dim, rnn_units, tokenizer):
+    def __init__(self, embedding_dim, rnn_units, vocabulary):
         """Creates a new instance ofg ImageCaptionModel class.
         
         Arguments:
             embedding_dim (integer): Number of dimensions of the embedding layer in the RNN_Decoder
             rnn_units (integer): Number of hidden units in the RNN_Decoder
-            vocab_size (integer): Size of the vocabulary
+            vocabulary (text.Vocabulary): Vocabulary from the training set
         """
         self.encoder = CNN_Encoder(embedding_dim)
-        vocab_size = len(tokenizer.word_index) + 1
-        print("*****   Vocab size inside model = ", vocab_size)
-        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocab_size)
-        self.tokenizer = tokenizer
+        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size)
+        self.tokenizer = vocabulary.tokenizer
 
     def compile(optimizer, loss):
         """Configures the model for training.
@@ -134,7 +132,7 @@ class RNN_Decoder(tf.keras.Model):
         return tf.zeros((batch_size, self.units))
 
 
-def build_model(config, tokenizer):
+def build_model(config, vocabulary):
     """Builds end-to-end model with CNN encoder, RNN decoder, and Attention mechanism.
 
     This is a helper method that extracts configuration information from the config object
@@ -147,6 +145,6 @@ def build_model(config, tokenizer):
     """
 
     model = ImageCaptionModel(
-        config.embedding_dim, config.rnn_units, tokenizer)
+        config.embedding_dim, config.rnn_units, vocabulary)
     return model
     

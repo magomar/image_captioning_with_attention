@@ -9,7 +9,7 @@ from cocoapi.pycocotools.coco import COCO
 from tensorflow.data import Dataset
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from text import build_vocabulary, Vocabulary
+from text import load_or_build_vocabulary, Vocabulary
 from tqdm import tqdm
 
 
@@ -93,7 +93,7 @@ def prepare_train_data(config):
 
     num_examples = config.num_train_examples
     if num_examples is not None:
-        # selecting the first num_examples from the shuffled sets
+        # selecting the first num_examples
         logging.info("Using just %d instances for training", num_examples)
         image_ids = image_ids[:num_examples]
         image_files = image_files[:num_examples]
@@ -101,14 +101,7 @@ def prepare_train_data(config):
     else:
         logging.info("Using full training dataset")
 
-    vocabulary = Vocabulary(config.vocabulary_size)
-    if not os.path.exists(config.vocabulary_file):
-        vocabulary.build(coco.get_text_captions())
-        vocabulary.save(config.vocabulary_file)
-    else:
-        logging.info("Loading vocabulary from %s", config.vocabulary_file)
-        vocabulary.load(config.vocabulary_file)
-
+    vocabulary = load_or_build_vocabulary(config, sentences = text_captions)
     
     captions = vocabulary.process_sentences(text_captions)
 
@@ -147,18 +140,19 @@ def prepare_eval_data(config):
 
     num_examples = config.num_val_examples
     if num_examples is not None:
-        # selecting the first num_examples from the shuffled sets
+        # selecting the first num_examples
         logging.info("Using just %d instances for training", num_examples)
         image_ids = image_ids[:num_examples]
         image_files = image_files[:num_examples]
         text_captions = text_captions[:num_examples]
     else:
-        logging.info("Using full training dataset")
+        logging.info("Using full validation dataset")
 
     if not os.path.exists(config.vocabulary_file):
         vocabulary = build_vocabulary(config)
     else:
         logging.info("Loading vocabulary from %s", config.vocabulary_file)
+        vocabulary
         vocabulary.load(config.vocabulary_file)
 
     

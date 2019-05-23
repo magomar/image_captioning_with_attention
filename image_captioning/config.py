@@ -40,12 +40,12 @@ class Config(object):
 
         # about the training
         self.resume_from_checkpoint = True
-        self.num_train_examples =  10000
+        self.num_train_examples =  None
         self.train_image_dir = './data/coco/train2014/'
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
-        self.num_eval_examples =  2000
+        self.num_eval_examples =  5000
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './val/results/'
