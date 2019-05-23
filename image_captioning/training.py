@@ -1,5 +1,6 @@
 import time
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from absl import logging
@@ -7,12 +8,12 @@ from dataset import prepare_train_data
 from models import build_model
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.train import Checkpoint, CheckpointManager
-from util import plot_loss
+from tqdm import tqdm
 
 def compute_loss(labels, predictions, loss_function):
     """Computes loss given labels, predictions and a loss function.
     
-    Args:
+    Arguments:
         labels (tensor): ground-truth values
         predictions (tensor): predicted values
         loss_function (tf.keras.losses.Loss): object implementing a loss function, eg. MAE
@@ -33,7 +34,7 @@ def compute_loss(labels, predictions, loss_function):
 def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
     """Obtains a checkpoint manager to save the model while training.
     
-    Args:
+    Arguments:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step
         config (config.Config): Values for various configuration options
@@ -53,8 +54,8 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
 def train_step(model, img_features, target, optimizer, loss_function):
     """Forward propagation pass for training.
 
-    Args:
-        model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
+    Arguments:
+        model (mode.ImageCaptionModel): object containing encoder and decoder
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
             the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
@@ -64,6 +65,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
         loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
+        tokenizer (tf.keras.preprocessing.text.Tokenizer): Object used to tokenize the captions
     
     Returns:
         loss: loss value for all the 
@@ -83,7 +85,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
     # Initializing the hidden state for each batch, since captions are not related from image to image
     hidden = decoder.reset_state(batch_size=actual_batch_size)
 
-    # Expand
+    # Expands input to decoder, inserts a dimension of 1 at axis 1
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
 
     # Open a GradientTape to record the operations run during the forward pass, 
@@ -116,7 +118,7 @@ def fit(model, train_dataset, config):
         config (util.Config): Values for various configuration options
     
     Returns:
-        list -- List of losses per batch of training
+        list of float -- List of losses per batch of training
     """
 
     # Get the training dataset.
@@ -160,14 +162,14 @@ def fit(model, train_dataset, config):
         total_loss = 0
         
         # Iterate over the batches of the dataset.
-        for (batch, (img_features, target)) in enumerate(dataset):
+        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):
             batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
             total_loss += t_loss
 
-            if batch % 100 == 0:
-                caption_length = int(target.shape[1])
-                logging.info('Epoch %d Batch %d/%d Loss: %.4f',
-                    epoch + 1, batch, num_batches, batch_loss.numpy() / caption_length)
+            # if batch % 100 == 0:
+            #     caption_length = int(target.shape[1])
+            #     logging.info('Epoch %d Batch %d/%d Loss: %.4f',
+            #         epoch + 1, batch, num_batches, batch_loss.numpy() / caption_length)
         # Storing the epoch end loss value to plot later
         batch_losses.append(total_loss / num_batches)
 
@@ -181,6 +183,13 @@ def fit(model, train_dataset, config):
 
     return batch_losses
 
+def plot_loss(losses):
+    plt.plot(losses)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss Plot')
+    plt.show()
+
 def train(config):
     """Orchestrates the training process.
     
@@ -193,9 +202,8 @@ def train(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
-    train_dataset = prepare_train_data(config)
-    tokenizer = train_dataset.tokenizer
-    model = build_model(tokenizer, config)
+    train_dataset, vocabulary = prepare_train_data(config)
+    model = build_model(config, vocabulary)
     start = time.time()
     losses = fit(model, train_dataset, config)
     logging.info('Total training time: %d seconds', time.time() - start)

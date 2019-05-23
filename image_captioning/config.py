@@ -15,16 +15,14 @@ class Config(object):
         self.weight_initilization_method = 'glorot'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 40
+        self.num_epochs = 20
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
         self.dataset_name = 'COCO_2014'
-        self.num_examples =  None
         self.buffer_size = 1000
-        self.drop_remainder = True
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
@@ -32,8 +30,8 @@ class Config(object):
         self.summary_dir = './summary/'
 
         # about the vocabulary
-        # self.vocabulary_file = './data/vocabulary.csv'
-        self.max_vocabulary_size = 10000
+        self.vocabulary_file = './data/vocabulary.pickle'
+        self.vocabulary_size = 10000
 
         # about image features
         self.extract_image_features = False
@@ -42,14 +40,14 @@ class Config(object):
 
         # about the training
         self.resume_from_checkpoint = True
+        self.num_train_examples =  None
         self.train_image_dir = './data/coco/train2014/'
-        self.train_caption_file = './data/coco/annotations/captions_train2014.json'
-        self.train_image_prefix = 'COCO_train2014_'
+        self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
+        self.num_eval_examples =  5000
         self.eval_image_dir = './data/coco/val2014/'
-        self.eval_caption_file = './data/coco/annotations/captions_val2014.json'
-        self.eval_image_prefix = 'COCO_val2014_'
+        self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './val/results/'
         self.eval_result_file = './val/results.json'
         self.save_eval_result_as_image = False
