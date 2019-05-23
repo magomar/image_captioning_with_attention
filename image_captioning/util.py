@@ -42,12 +42,6 @@ def plot_loss(losses):
     plt.title('Loss Plot')
     plt.show()
 
-def plot_image(image_file):
-    image = tf.io.read_file(image_file)
-    image = tf.image.decode_jpeg(image, channels=3)
-    plt.imshow(image)
-    plt.show()
-
 def shuffle_lists(*ls):
   l =list(zip(*ls))
   random.shuffle(l)

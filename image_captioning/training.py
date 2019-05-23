@@ -83,7 +83,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
     # Initializing the hidden state for each batch, since captions are not related from image to image
     hidden = decoder.reset_state(batch_size=actual_batch_size)
 
-    # Expand
+    # Expands input to decoder, inserts a dimesion of 1 at axis 1
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
 
     # Open a GradientTape to record the operations run during the forward pass, 

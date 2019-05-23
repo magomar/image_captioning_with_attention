@@ -5,13 +5,14 @@ import tensorflow as tf
 
 from absl import app, flags, logging
 from config import Config
-from dataset import preprocess_images
+from images import preprocess_images
 from evaluation import evaluate
+from text import build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', None,
-                    'The phase can be prepare, train, eval or test')
+flags.DEFINE_string('phase', 'prepare',
+                    'The phase can be prepare, train, eval or infer')
 
 flags.DEFINE_boolean('load', True,
                         'Turn on to load a pretrained model from either \
@@ -64,11 +65,13 @@ def main(argv):
 
     if FLAGS.phase == 'prepare' or config.extract_image_features:
         # preparation phase (extracts and saves image features for later use)
-        preprocess_images(config)
+        # preprocess_images(config)
+        build_vocabulary(config)
 
     elif FLAGS.phase == 'train': 
         # training phase: build and trains an image captioning model
         train(config)
+        
     elif FLAGS.phase == 'eval':
         # evaluation phase: evaluates a saved model on the validation data
         evaluate(config)
