@@ -11,7 +11,7 @@ from text import build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', 'prepare',
+flags.DEFINE_string('phase', 'train',
                     'The phase can be prepare, train, eval or infer')
 
 flags.DEFINE_boolean('load', True,
@@ -63,10 +63,12 @@ def main(argv):
 
     logging.info('Running %s phase', config.phase)
 
-    if FLAGS.phase == 'prepare' or config.extract_image_features:
-        # preparation phase (extracts and saves image features for later use)
-        # preprocess_images(config)
+    if FLAGS.phase == 'prepare':
+        # build vocabulary
         build_vocabulary(config)
+        # extracts and saves image features for later use
+        if config.extract_image_features:
+            preprocess_images(config)
 
     elif FLAGS.phase == 'train': 
         # training phase: build and trains an image captioning model

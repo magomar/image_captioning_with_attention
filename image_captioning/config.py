@@ -44,12 +44,10 @@ class Config(object):
         self.resume_from_checkpoint = True
         self.train_image_dir = './data/coco/train2014/'
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
-        self.train_image_prefix = 'COCO_train2014_'
 
         # about the evaluation
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
-        self.eval_image_prefix = 'COCO_val2014_'
         self.eval_result_dir = './val/results/'
         self.eval_result_file = './val/results.json'
         self.save_eval_result_as_image = False

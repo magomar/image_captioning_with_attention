@@ -5,12 +5,10 @@ import numpy as np
 import tensorflow as tf
 
 from absl import logging
-from images import preprocess_images
-from models import get_image_features_extract_model
+from cocoapi.pycocotools.coco import COCO
 from tensorflow.data import Dataset
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from util import ImageHelper, shuffle_lists
 from tqdm import tqdm
 from text import build_vocabulary, Vocabulary
 
@@ -64,37 +62,6 @@ class DataSet(object):
             dataset = dataset.batch(self.batch_size, drop_remainder=self.drop_remainder)
 
         self.dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-    
-
-# def get_raw_data(image_dir, captions_annot_file, image_prefix):
-#     """Get raw data to build a dataset.
-    
-#     Arguments:
-#         image_dir {String} -- Relative path of folder with the images
-#         captions_annot_file {String} -- Relative path of JSON file with the captions
-#         image_prefix {String} -- Prefix used to name image files (prepended to image identifiers)
-    
-#     Returns:
-#         A list of image identifiers, image files and raw captions
-#     """
-
-#     image_ids = []
-#     text_captions = []
-
-#     # read the json file with the raw captions
-#     with open(os.path.abspath(captions_annot_file), 'r') as f:
-#         annotations = json.load(f)
-
-#     for annot in annotations['annotations']:
-#         caption = '<start> ' + annot['caption'] + ' <end>'
-#         img_id = annot['image_id']
-#         image_ids.append(img_id)
-#         text_captions.append(caption)
-
-#     image_helper = ImageHelper(image_dir, image_prefix)
-#     image_files = [image_helper.get_image_file(img_id) for img_id in image_ids]
-
-#     return image_ids, image_files, text_captions
 
 def map_image_features_to_caption(image_file, caption):
     """ Load image features from npy file and maps them to caption.
@@ -117,37 +84,47 @@ def prepare_train_data(config):
     logging.info("Preparing training data for %s...", config.dataset_name)
 
     # obtaining the image ids, image files and text captions
-    image_ids, image_files, text_captions = get_raw_data(
-        config.train_image_dir, config.train_captions_annot_file, config.train_image_prefix)
+    coco = COCO(config.train_captions_file)
+    image_ids = coco.get_image_ids()
+    image_files = coco.get_image_files(config.train_image_dir)
+    text_captions = coco.get_text_captions()
 
-    logging.info("Number of instances in the training set: %d", len(image_files))
+    logging.info("Number of instances in the training set: %d", len(image_ids))
 
-    # selecting the first num_examples from the shuffled sets
     num_examples = config.num_examples
     if num_examples is not None:
+        # selecting the first num_examples from the shuffled sets
         logging.info("Using just %d instances for training", num_examples)
-        # perhaps shuffling the captions and image_names together, setting a random state
-        image_files, text_captions = shuffle_lists(image_files, text_captions)
+        image_ids = image_ids[:num_examples]
         image_files = image_files[:num_examples]
         text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full training dataset")
+
+
+    vocabulary = Vocabulary(config.vocabulary_size)
+    if not os.path.exists(config.vocabulary_file):
+        vocabulary.build(coco.get_text_captions())
+        vocabulary.save(config.vocabulary_file)
+    else:
+        logging.info("Loading vocabulary from %s", config.vocabulary_file)
+        vocabulary.load(config.vocabulary_file)
+
     
-    captions, tokenizer = preprocess_captions(text_captions, config.max_vocabulary_size)
+    captions = vocabulary.process_sentences(text_captions)
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Training'),
         image_ids,
         image_files,
         captions,
-        tokenizer,
         config.batch_size,
         shuffle= True,
         buffer_size= config.buffer_size,
         drop_remainder= config.drop_remainder
     )
 
-    return dataset
+    return dataset, vocabulary
 
 
 def prepare_eval_data(config):

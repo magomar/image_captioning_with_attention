@@ -15,11 +15,12 @@ class ImageCaptionModel(object):
         Args:
             embedding_dim (integer): Number of dimensions of the embedding layer in the RNN_Decoder
             rnn_units (integer): Number of hidden units in the RNN_Decoder
-            tokenizer (tf.keras.preprocessing.text.Tokenizer): Tokenizer fitted to the training captions
+            vocab_size (integer): Size of the vocabulary
         """
         self.encoder = CNN_Encoder(embedding_dim)
-        self.vocab_size = len(tokenizer.word_index) + 1
-        self.decoder = RNN_Decoder(embedding_dim, rnn_units, self.vocab_size)
+        vocab_size = len(tokenizer.word_index) + 1
+        print("*****   Vocab size inside model = ", vocab_size)
+        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocab_size)
         self.tokenizer = tokenizer
 
     def compile(optimizer, loss):
@@ -133,31 +134,19 @@ class RNN_Decoder(tf.keras.Model):
         return tf.zeros((batch_size, self.units))
 
 
-def build_model(tokenizer, config):
+def build_model(config, tokenizer):
     """Builds end-to-end model with CNN encoder, RNN decoder, and Attention mechanism.
 
     This is a helper method that extracts configuration information from the config object
     
-    Args:
-        tokenizer (tf.keras.preprocessing.text.Tokenizer): Tokenizer fitted to the training captions
+    Arguments:
         config (util.Config): Values for various configuration options.
     
     Returns:
-        model.ImageCaptionModel: Full model, including encoder, decoder and tokenizer
+        model.ImageCaptionModel: Full model, including encoder, decoder and attention
     """
 
-    model = ImageCaptionModel(config.embedding_dim, config.rnn_units, tokenizer)
+    model = ImageCaptionModel(
+        config.embedding_dim, config.rnn_units, tokenizer)
     return model
-
-def get_image_features_extract_model(cnn_name):
-    if cnn_name == 'inception_v3':
-         # Create feature extraction layer based on pretrained Inception-V3 model
-        image_model = InceptionV3(include_top=False, weights='imagenet')
-    elif cnn_name == 'nasnet':
-        image_model = NASNetLarge(include_top=False, weights='imagenet')
-    new_input = image_model.input
-    hidden_layer = image_model.layers[-1].output
-    pretrained_image_model = Model(new_input, hidden_layer)
-    return pretrained_image_model
-
     

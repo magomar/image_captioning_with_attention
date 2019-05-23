@@ -7,7 +7,6 @@ from dataset import prepare_train_data
 from models import build_model
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.train import Checkpoint, CheckpointManager
-from util import plot_loss
 
 def compute_loss(labels, predictions, loss_function):
     """Computes loss given labels, predictions and a loss function.
@@ -83,7 +82,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
     # Initializing the hidden state for each batch, since captions are not related from image to image
     hidden = decoder.reset_state(batch_size=actual_batch_size)
 
-    # Expands input to decoder, inserts a dimesion of 1 at axis 1
+    # Expands input to decoder, inserts a dimension of 1 at axis 1
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
 
     # Open a GradientTape to record the operations run during the forward pass, 
@@ -181,6 +180,13 @@ def fit(model, train_dataset, config):
 
     return batch_losses
 
+def plot_loss(losses):
+    plt.plot(losses)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss Plot')
+    plt.show()
+
 def train(config):
     """Orchestrates the training process.
     
@@ -193,9 +199,8 @@ def train(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
-    train_dataset = prepare_train_data(config)
-    tokenizer = train_dataset.tokenizer
-    model = build_model(tokenizer, config)
+    train_dataset, vocabulary = prepare_train_data(config)
+    model = build_model(config, vocabulary.tokenizer)
     start = time.time()
     losses = fit(model, train_dataset, config)
     logging.info('Total training time: %d seconds', time.time() - start)

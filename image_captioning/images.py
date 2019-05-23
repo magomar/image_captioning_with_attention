@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from absl import logging
 from cocoapi.pycocotools.coco import COCO
+from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tqdm import tqdm
 
 def preprocess_images(config):
@@ -21,25 +22,24 @@ def preprocess_images(config):
     logging.info("Preprocessing images (extracting image features)...")
 
     batchsize = config.image_features_batchsize
+
     # TODO save image features in specific folder (config.features_dir)
     # features_path = os.path.abspath(config.image_features_dir)
-
-    coco = COCO(config.train_captions_file)
     
     # Obtain image files for training dataset
-    train_image_ids, train_image_files, train_text_captions = get_raw_data(
-        config.train_image_dir, config.train_caption_file, config.train_image_prefix)
+    coco_train = COCO(config.train_captions_file)
+    train_image_files = coco_train.get_image_files(config.train_image_dir)
 
     # Obtain image files for evaluation dataset
-    eval_image_ids, eval_image_files, eval_text_captions = get_raw_data(
-        config.eval_image_dir, config.eval_caption_file, config.eval_image_prefix)
+    coco_eval = COCO(config.eval_captions_file)
+    train_image_files = coco_train.get_image_files(config.eval_image_dir)
 
     # Create feature extraction layer
     pretrained_image_model = get_image_features_extract_model(config.cnn)
 
-    # Create a dataset with images ready to be fed into the encoder in batches 
-    encode_set = sorted(set(train_image_files + eval_image_files))
-    image_dataset = Dataset.from_tensor_slices(encode_set)
+    # Create a dataset with images ready to be fed into the encoder (cnn for extracting image features) in batches 
+    images_to_process = sorted(set(train_image_files + eval_image_files))
+    image_dataset = Dataset.from_tensor_slices(images_to_process)
     if config.cnn == 'inception_v3':
         image_dataset = image_dataset.map(
             load_image_inception_v3, num_parallel_calls=tf.data.experimental.AUTOTUNE
@@ -48,8 +48,6 @@ def preprocess_images(config):
         image_dataset = image_dataset.map(
             load_image_nasnet, num_parallel_calls=tf.data.experimental.AUTOTUNE
             ).batch(batchsize)
-
-    logging.info("Extracting image features and saving them to disk")
 
     for image, image_file in tqdm(image_dataset):
         batch_features = pretrained_image_model(image)
@@ -95,6 +93,18 @@ def load_image_nasnet(image_file):
     image = tf.image.resize(image, (299, 299))
     image = tf.keras.applications.nasnet.preprocess_input(image)
     return image, image_file
+
+def get_image_features_extract_model(cnn_name):
+    if cnn_name == 'inception_v3':
+         # Create feature extraction layer based on pretrained Inception-V3 model
+        image_model = InceptionV3(include_top=False, weights='imagenet')
+    elif cnn_name == 'nasnet':
+        image_model = NASNetLarge(include_top=False, weights='imagenet')
+    new_input = image_model.input
+    hidden_layer = image_model.layers[-1].output
+    pretrained_image_model = Model(new_input, hidden_layer)
+    return pretrained_image_model
+
 
 def plot_image(image_file):
     image = tf.io.read_file(image_file)
