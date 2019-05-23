@@ -12,7 +12,7 @@ class ImageCaptionModel(object):
     def __init__(self, embedding_dim, rnn_units, tokenizer):
         """Creates a new instance ofg ImageCaptionModel class.
         
-        Args:
+        Arguments:
             embedding_dim (integer): Number of dimensions of the embedding layer in the RNN_Decoder
             rnn_units (integer): Number of hidden units in the RNN_Decoder
             vocab_size (integer): Size of the vocabulary
@@ -26,7 +26,7 @@ class ImageCaptionModel(object):
     def compile(optimizer, loss):
         """Configures the model for training.
         
-        Args:
+        Arguments:
             optimizer (String): name of optimizer (or optimizer instance)
             loss (String): name of objective function (or objective function)
         Raises:

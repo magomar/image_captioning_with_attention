@@ -74,7 +74,7 @@ def map_image_features_to_caption(image_file, caption):
 def prepare_train_data(config):
     """Prepare the data for training the model.
     
-    Args:
+    Arguments:
         config (util.Config): Values for various configuration options.
     
     Returns:
@@ -128,7 +128,7 @@ def prepare_train_data(config):
 def prepare_eval_data(config):
     """ Prepare the data for evaluating the model.
     
-    Args:
+    Arguments:
         config (util.Config): Values for various configuration options.
     
     Returns:

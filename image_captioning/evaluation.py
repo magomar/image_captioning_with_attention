@@ -10,7 +10,7 @@ from images import load_image_inception_v3
 def test_step(model, img_features, target, loss_function):
     """Forward propagation pass for testing.
 
-    Args:
+    Arguments:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3

@@ -13,7 +13,7 @@ from tqdm import tqdm
 def compute_loss(labels, predictions, loss_function):
     """Computes loss given labels, predictions and a loss function.
     
-    Args:
+    Arguments:
         labels (tensor): ground-truth values
         predictions (tensor): predicted values
         loss_function (tf.keras.losses.Loss): object implementing a loss function, eg. MAE
@@ -34,7 +34,7 @@ def compute_loss(labels, predictions, loss_function):
 def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
     """Obtains a checkpoint manager to save the model while training.
     
-    Args:
+    Arguments:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step
         config (config.Config): Values for various configuration options
@@ -54,7 +54,7 @@ def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
 def train_step(model, img_features, target, optimizer, loss_function):
     """Forward propagation pass for training.
 
-    Args:
+    Arguments:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
