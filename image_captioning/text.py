@@ -55,11 +55,12 @@ class Vocabulary(object):
             self.size = num_words
 
 
-    def process_sentence(self, sentence):
-        """Tokenizes and pads a single sentence
+    def sequence2sentence(self, sequence):
+        """Converts a sequence back to a sentence
         
         """
-        return process_sentences([sentence])[0]
+        sentence = ' '.join([self.tokenizer.index_word[i] for i in sequence if i not in [0]])
+        return sentence
 
     def process_sentences(self, sentences):
         """Tokenize and pads a list of sentences

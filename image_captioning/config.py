@@ -45,14 +45,14 @@ class Config(object):
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
-        self.num_eval_examples =  5000
+        self.num_eval_examples =  128
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
-        self.eval_result_dir = './val/results/'
-        self.eval_result_file = './val/results.json'
+        self.eval_result_dir = './results/eval'
+        self.eval_result_file = './results/eval_results.json'
         self.save_eval_result_as_image = False
 
-        # about the testing
-        self.test_image_dir = './test/images/'
-        self.test_result_dir = './test/results/'
-        self.test_result_file = './test/results.csv'
+        # about the inference
+        self.test_image_dir = './results/test/images/'
+        self.test_result_dir = './results/test/'
+        self.test_result_file = './results/test_results.csv'

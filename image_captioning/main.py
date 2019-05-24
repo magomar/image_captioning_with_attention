@@ -11,7 +11,7 @@ from text import load_or_build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', 'train',
+flags.DEFINE_string('phase', 'eval',
                     'The phase can be prepare, train, eval or infer')
 
 flags.DEFINE_boolean('load', True,
