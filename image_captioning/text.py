@@ -96,6 +96,9 @@ class Vocabulary(object):
         """
         with open(save_file, 'rb') as handle:
             self.tokenizer = pickle.load(handle)
+        num_words = len(self.tokenizer.word_index) + 1
+        if self.size > num_words:
+            self.size = num_words
 
 def load_or_build_vocabulary(config, sentences = None):
     vocabulary = Vocabulary(config.vocabulary_size)

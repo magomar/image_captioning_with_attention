@@ -21,17 +21,6 @@ class ImageCaptionModel(object):
         self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size)
         self.tokenizer = vocabulary.tokenizer
 
-    def compile(optimizer, loss):
-        """Configures the model for training.
-        
-        Arguments:
-            optimizer (String): name of optimizer (or optimizer instance)
-            loss (String): name of objective function (or objective function)
-        Raises:
-            ValueError: In case of invalid arguments for `optimizer`, `loss`
-        """
-        self.optimizer = optimizers.get
-
 
 class BahdanauAttention(tf.keras.Model):
     """Attention model based on Bahdanau soft attention model.

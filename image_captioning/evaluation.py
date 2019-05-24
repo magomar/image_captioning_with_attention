@@ -1,13 +1,15 @@
 import os
 
 import tensorflow as tf
-import numpy as np
 
-from dataset import prepare_eval_data, prepare_train_data
-from images import load_image_inception_v3
+from absl import logging
+from dataset import prepare_eval_data
+from models import build_model
+from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from training import get_checkpoint_manager
 
 @tf.function
-def test_step(model, img_features, target, loss_function):
+def eval_step(model, img_features, target, loss_function):
     """Forward propagation pass for testing.
 
     Arguments:
@@ -63,6 +65,49 @@ def test_step(model, img_features, target, loss_function):
     return loss, total_loss
 
 
+def eval(model, val_dataset, coco_eval, vocabulary, config):
+    """Evaluates the model on the given dataset
+    
+    Arguments:
+        model {models.ImageCaptionModel} -- The full image captioning model
+        val_dataset {dataset.DataSet} -- Evaluation dataset
+        config (util.Config): Values for various configuration options
+    
+    Returns:
+        list of float -- List of losses per batch of training
+    """
+    # Get the evaluation dataset and parameters.
+    dataset = val_dataset.dataset
+    num_examples = val_dataset.num_instances
+    batch_size = val_dataset.batch_size
+    num_batches = val_dataset.num_batches
+      # Instantiate an optimizer.
+    optimizer = tf.optimizers.get(config.optimizer)
+    # Instantiate a loss function.
+    loss_function = SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+
+    logging.info("Evaluating %d examples", num_examples)
+    logging.info("Divided into %d batches of size %d", num_batches, batch_size)
+
+    # load model from last checkpoint
+    ckpt_manager, ckpt = get_checkpoint_manager(model, optimizer, config.checkpoints_dir, config.max_checkpoints)
+    status = ckpt.restore(ckpt_manager.latest_checkpoint)
+    if ckpt_manager.latest_checkpoint:
+        # assert_consumed() raises an error because of delayed restoration 
+        # See https://www.tensorflow.org/alpha/guide/checkpoints#delayed_restorations
+        # status.assert_consumed() 
+        status.assert_existing_objects_matched()
+    epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
+
+    results = []
+    # Iterate over the batches of the dataset.
+    for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):
+        batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
+        total_loss += t_loss
+    
+    return epoch
+
+
 def evaluate(config):
     """Orchestrates the evaluation process.
     
@@ -75,14 +120,10 @@ def evaluate(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
-    if not os.path.exists(config.eval_result_dir):
-            os.mkdir(config.eval_result_dir)
+    # if not os.path.exists(config.eval_result_dir):
+    #         os.mkdir(config.eval_result_dir)
 
-    val_dataset = prepare_val_data(config)
-    train_dataset = prepare_train_data(config)
-    tokenizer = train_dataset.tokenizer
-
-    imf = val_dataset.image_files[0]
-    image, image_file = load_image_inception_v3(imf)
-    print(image)
-    print(image_file)
+    val_dataset, vocabulary, coco_eval = prepare_eval_data(config)
+    model = build_model(config, vocabulary)
+    loss = eval(model, val_dataset, coco_eval, vocabulary, config)
+    logging.info ('Final loss after = %.6f', loss)

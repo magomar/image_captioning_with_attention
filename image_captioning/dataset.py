@@ -138,7 +138,7 @@ def prepare_eval_data(config):
 
     logging.info("Number of instances in the validation set: %d", len(image_ids))
 
-    num_examples = config.num_val_examples
+    num_examples = config.num_eval_examples
     if num_examples is not None:
         # selecting the first num_examples
         logging.info("Using just %d instances for training", num_examples)
@@ -148,28 +148,22 @@ def prepare_eval_data(config):
     else:
         logging.info("Using full validation dataset")
 
-    if not os.path.exists(config.vocabulary_file):
-        vocabulary = build_vocabulary(config)
-    else:
-        logging.info("Loading vocabulary from %s", config.vocabulary_file)
-        vocabulary
-        vocabulary.load(config.vocabulary_file)
+    vocabulary = load_or_build_vocabulary(config)
 
     
     captions = vocabulary.process_sentences(text_captions)
+
     dataset = DataSet(
-        '%s_%s'.format(config.dataset_name, 'Training'),
+        '%s_%s'.format(config.dataset_name, 'Validation'),
         image_ids,
         image_files,
         captions,
-        tokenizer,
         config.batch_size,
         shuffle= False,
-        buffer_size= config.buffer_size,
-        drop_remainder= config.drop_remainder
+        buffer_size= config.buffer_size
     )
 
-    return dataset
+    return dataset, vocabulary, coco
 
 def download_coco(config):
     """Donwload COCO dataset.

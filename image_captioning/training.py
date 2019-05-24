@@ -31,8 +31,8 @@ def compute_loss(labels, predictions, loss_function):
 
     return tf.reduce_mean(loss_)
 
-def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints):
-    """Obtains a checkpoint manager to save the model while training.
+def get_checkpoint_manager(model, optimizer, checkpoints_dir, max_checkpoints=None):
+    """Obtains a checkpoint manager to manage model saving and restoring.
     
     Arguments:
         model (mode.ImageCaptionModel): object containing encoder, decoder and tokenizer
@@ -65,11 +65,10 @@ def train_step(model, img_features, target, optimizer, loss_function):
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
         loss_function (tf.losses.Loss): Object that computes the loss function.
             Actually only the SparseCategorialCrossentry is supported
-        tokenizer (tf.keras.preprocessing.text.Tokenizer): Object used to tokenize the captions
     
     Returns:
-        loss: loss value for all the 
-        total_loss: loss value averaged by the size of captions ()
+        loss: loss value for one step (a mini-batch )
+        total_loss: loss value averaged by the size of captions
     """
 
     encoder = model.encoder
@@ -110,18 +109,18 @@ def train_step(model, img_features, target, optimizer, loss_function):
 
 
 def fit(model, train_dataset, config):
-    """Fits the model for the given dataset
+    """Fits the model to the provided dataset
     
     Arguments:
         model {models.ImageCaptionModel} -- The full image captioning model
-        train_dataset {dataset.DataSet} -- Container for the dataset and related info
+        train_dataset {dataset.DataSet} -- Training dataset
         config (util.Config): Values for various configuration options
     
     Returns:
         list of float -- List of losses per batch of training
     """
 
-    # Get the training dataset.
+    # Get the training dataset and various parameters.
     dataset = train_dataset.dataset
     num_examples = train_dataset.num_instances
     batch_size = train_dataset.batch_size
@@ -173,8 +172,6 @@ def fit(model, train_dataset, config):
         # Storing the epoch end loss value to plot later
         batch_losses.append(total_loss / num_batches)
 
-        # if epoch % 5 == 0:
-        #     ckpt_manager.save()
         logging.info ('Epoch %d Loss %.6f', epoch + 1, total_loss / num_batches)
         logging.info ('Time taken for 1 epoch: %d sec\n', time.time() - start)
 
