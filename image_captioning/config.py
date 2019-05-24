@@ -15,7 +15,7 @@ class Config(object):
         self.weight_initilization_method = 'glorot'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 20
+        self.num_epochs = 50
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
@@ -34,7 +34,7 @@ class Config(object):
         self.vocabulary_size = 10000
 
         # about image features
-        self.extract_image_features = False
+        self.extract_image_features = True
         self.image_features_batchsize = 16
         # self.image_features_dir = './data/features/'
 

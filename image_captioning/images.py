@@ -7,6 +7,8 @@ import tensorflow as tf
 
 from absl import logging
 from cocoapi.pycocotools.coco import COCO
+from tensorflow.data import Dataset
+from tensorflow.keras import Model
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tqdm import tqdm
 
@@ -32,7 +34,7 @@ def preprocess_images(config):
 
     # Obtain image files for evaluation dataset
     coco_eval = COCO(config.eval_captions_file)
-    train_image_files = coco_train.get_image_files(config.eval_image_dir)
+    eval_image_files = coco_eval.get_image_files(config.eval_image_dir)
 
     # Create feature extraction layer
     pretrained_image_model = get_image_features_extract_model(config.cnn)
@@ -53,7 +55,7 @@ def preprocess_images(config):
         batch_features = pretrained_image_model(image)
         batch_features = tf.reshape(
             batch_features, (batch_features.shape[0], -1, batch_features.shape[3]))
-        # Save image features with same name of image plus
+        # Save image features with same name of image plus '.npy'
         for bf, p in zip(batch_features, image_file):
             img_path = p.numpy().decode("utf-8")
             np.save(img_path, bf.numpy())

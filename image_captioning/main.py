@@ -11,15 +11,15 @@ from text import load_or_build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('phase', 'eval',
+flags.DEFINE_string('phase', None,
                     'The phase can be prepare, train, eval or infer')
 
 flags.DEFINE_boolean('load', True,
                         'Turn on to load a pretrained model from either \
                         the latest checkpoint or a specified file')
 
-flags.DEFINE_string('model_file', None,
-                    'If specified, load a pretrained model from this file')
+# flags.DEFINE_string('model_file', None,
+#                     'If specified, load a pretrained model from this file')
 
 flags.DEFINE_integer('epochs', None,
                     'If specified, train for this number of epochs. It will override config options')
