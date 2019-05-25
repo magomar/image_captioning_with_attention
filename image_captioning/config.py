@@ -46,7 +46,7 @@ class Config(object):
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
-        self.num_eval_examples =  128
+        self.num_eval_examples =  None
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './results/eval/images/'
