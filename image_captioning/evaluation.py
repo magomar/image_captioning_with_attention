@@ -85,20 +85,21 @@ def generate_sequences_argmax(model, img_features, sequence_length):
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * batch_size, 1)
     # Passes visual features through encoder
     features = encoder(img_features)
+    predicted_sequences = []
     for i in range(sequence_length):
         # Passing input, features and hidden state through the decoder
         predictions, hidden, _ = decoder(dec_input, features, hidden)
         # predictions shape = (batch_size, vocabulary_size)
         predicted_word_idxs = tf.argmax(predictions, axis=1)
-        predicted_sequences.append(predicted_word_idxs.numpy())
+        predicted_sequences.append(predicted_word_idxs)
         # predicted_word = tokenizer.index_word[predicted_word_idx]
         # if predicted_word == '<end>':
         #     break
         # else:
         #     predicted_caption.append(predicted_word)
         dec_input = tf.expand_dims(predicted_word_idxs, 1)
-
-    return predicted_sequences
+    predicted_sequences = tf.stack(predicted_sequences,axis=1)
+    return predicted_sequences.numpy()
 
 def eval(model, eval_dataset, vocabulary, config):
     """Generate captions on the given dataset
@@ -179,7 +180,7 @@ def evaluate(config):
 
     eval_dataset, vocabulary, coco_eval = prepare_eval_data(config)
     model = build_model(config, vocabulary)
-    results = eval(model, eval_dataset, vocabulary, config)
+    results = eval2(model, eval_dataset, vocabulary, config)
 
 #############################################################################################
 
