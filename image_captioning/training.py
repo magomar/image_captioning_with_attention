@@ -59,7 +59,7 @@ def train_step(model, img_features, target, optimizer, loss_function):
         img_features (tensor): Minibatch of image features, with shape = (batch_size, feature_size, num_features).
             feature_size and num_features depend on the CNN used for the encoder, for example with Inception-V3
             the image features are 8x8x2048, which results in a shape of  (batch_size, 64, 20148).
-        target (tensor): Minibatch of tokenized captions, shape = (batch_size, max_captions_length).
+        target (tensor): Minibatch of sequences, shape = (batch_size, sequence_length).
             max_captions_length depends on the dataset being used, 
             for example, in COCO 2014 dataset max_captions_length = 53.
         optimizer (tf.optimizers.Optimizer): the optimizer used during the backpropagation step.
@@ -78,14 +78,14 @@ def train_step(model, img_features, target, optimizer, loss_function):
 
     # Obtain the actual size of this batch, since it may differ from predefined batchsize
     # when running the last batch of an epoch
-    actual_batch_size=target.shape[0]
+    batch_size=target.shape[0]
     sequence_length=target.shape[1]
 
     # Initializing the hidden state for each batch, since captions are not related from image to image
-    hidden = decoder.reset_state(batch_size=actual_batch_size)
+    hidden = decoder.reset_state(batch_size=batch_size)
 
-    # Expands input to decoder, inserts a dimension of 1 at axis 1
-    dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
+    # Expands input to decoder
+    dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * batch_size, 1)
 
     # Open a GradientTape to record the operations run during the forward pass, 
     # which enables autodifferentiation.
@@ -93,7 +93,6 @@ def train_step(model, img_features, target, optimizer, loss_function):
         # Passes visual features through encoder
         features = encoder(img_features)
         for i in range(1, sequence_length):
-
             # Passing input, features and hidden state through the decoder
             predictions, hidden, _ = decoder(dec_input, features, hidden)
             loss += compute_loss(target[:, i], predictions, loss_function)

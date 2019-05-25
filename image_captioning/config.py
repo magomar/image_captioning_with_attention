@@ -12,7 +12,7 @@ class Config(object):
         self.rnn_units = 512
 
         # about the weight initialization and regularization
-        self.weight_initilization_method = 'glorot'     # 'glorot', 'xavier', etc.
+        self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
         self.num_epochs = 50
@@ -23,10 +23,11 @@ class Config(object):
         # about the dataset
         self.dataset_name = 'COCO_2014'
         self.buffer_size = 1000
+        self.drop_remainder = True
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
-        self.checkpoints_dir = './models/'
+        self.checkpoints_dir = './models/checkpoints/'
         self.summary_dir = './summary/'
 
         # about the vocabulary
@@ -48,8 +49,8 @@ class Config(object):
         self.num_eval_examples =  128
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
-        self.eval_result_dir = './results/eval'
-        self.eval_result_file = './results/eval_results.json'
+        self.eval_result_dir = './results/eval/images/'
+        self.eval_result_file = './results/eval/eval_results.json'
         self.save_eval_result_as_image = False
 
         # about the inference

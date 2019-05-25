@@ -28,7 +28,7 @@ class DataSet(object):
                 batch_size,
                 shuffle=False,
                 buffer_size=1000,
-                drop_remainder=True):
+                drop_remainder=False):
         self.image_ids = np.array(image_ids)
         self.image_files = np.array(image_files)
         self.captions = captions
@@ -44,8 +44,8 @@ class DataSet(object):
         """
 
         self.num_instances = len(self.image_files)
-        # self.num_batches = int(np.ceil(self.num_instances * 1.0 / self.batch_size))
-        self.num_batches = self.num_instances // self.batch_size
+        self.num_batches = int(np.ceil(self.num_instances * 1.0 / self.batch_size))
+        # self.num_batches = self.num_instances // self.batch_size
 
         dataset = Dataset.from_tensor_slices((self.image_files, self.captions))
         # using map to load the numpy files in parallel
@@ -101,8 +101,9 @@ def prepare_train_data(config):
     else:
         logging.info("Using full training dataset")
 
-    vocabulary = load_or_build_vocabulary(config, sentences = text_captions)
-    
+    # vocabulary = load_or_build_vocabulary(config, sentences = text_captions)
+    vocabulary = load_or_build_vocabulary(config)
+
     captions = vocabulary.process_sentences(text_captions)
 
     dataset = DataSet(
@@ -112,7 +113,8 @@ def prepare_train_data(config):
         captions,
         config.batch_size,
         shuffle= True,
-        buffer_size= config.buffer_size
+        buffer_size= config.buffer_size,
+        drop_remainder= config.drop_remainder
     )
 
     return dataset, vocabulary
@@ -160,7 +162,8 @@ def prepare_eval_data(config):
         captions,
         config.batch_size,
         shuffle= False,
-        buffer_size= config.buffer_size
+        buffer_size= config.buffer_size,
+        drop_remainder= config.drop_remainder
     )
 
     return dataset, vocabulary, coco

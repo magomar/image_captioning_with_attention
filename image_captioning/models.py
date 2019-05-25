@@ -9,7 +9,7 @@ class ImageCaptionModel(object):
 
     """
 
-    def __init__(self, embedding_dim, rnn_units, vocabulary):
+    def __init__(self, embedding_dim, rnn_units, weight_initialization, vocabulary):
         """Creates a new instance ofg ImageCaptionModel class.
         
         Arguments:
@@ -18,7 +18,7 @@ class ImageCaptionModel(object):
             vocabulary (text.Vocabulary): Vocabulary from the training set
         """
         self.encoder = CNN_Encoder(embedding_dim)
-        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size)
+        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size, weight_initialization)
         self.tokenizer = vocabulary.tokenizer
 
 
@@ -78,7 +78,7 @@ class RNN_Decoder(tf.keras.Model):
 
     """
 
-    def __init__(self, embedding_dim, units, vocab_size):
+    def __init__(self, embedding_dim, units, vocab_size, weight_initilization):
         super(RNN_Decoder, self).__init__()
         self.units = units
 
@@ -86,7 +86,7 @@ class RNN_Decoder(tf.keras.Model):
         self.rnn = GRU(self.units,
                                        return_sequences=True,
                                        return_state=True,
-                                       recurrent_initializer='glorot_uniform')
+                                       recurrent_initializer=weight_initilization)
         self.fc1 = Dense(self.units)
         self.fc2 = Dense(vocab_size)
 
@@ -134,6 +134,6 @@ def build_model(config, vocabulary):
     """
 
     model = ImageCaptionModel(
-        config.embedding_dim, config.rnn_units, vocabulary)
+        config.embedding_dim, config.rnn_units, config.weight_initialization, vocabulary)
     return model
     

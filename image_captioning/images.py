@@ -81,13 +81,13 @@ def load_image_inception_v3(image_file):
 def load_image_nasnet(image_file):
     """Loads an image from file, and transforms it into the NASNet format.
     
-    Image data should be reshaped to (299, 299, 3)
+    Image data should be reshaped to (3, 331, 331)
 
     Arguments:
         image_file {String} -- Path to image file
     
     Returns:
-        tensor -- Image features with shape (, 4032)
+        tensor -- Image features with shape (8, 8, 4032)
     """
     
     image = tf.io.read_file(image_file)
