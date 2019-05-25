@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from tensorflow.keras import Model
+from tensorflow.keras.applications import InceptionV3, NASNetLarge
 from tensorflow.keras.layers import Dense, Embedding, GRU
 
 class ImageCaptionModel(object):
@@ -7,29 +9,17 @@ class ImageCaptionModel(object):
 
     """
 
-    def __init__(self, embedding_dim, rnn_units, tokenizer):
+    def __init__(self, embedding_dim, rnn_units, weight_initialization, vocabulary):
         """Creates a new instance ofg ImageCaptionModel class.
         
-        Args:
+        Arguments:
             embedding_dim (integer): Number of dimensions of the embedding layer in the RNN_Decoder
             rnn_units (integer): Number of hidden units in the RNN_Decoder
-            tokenizer (tf.keras.preprocessing.text.Tokenizer): Tokenizer fitted to the training captions
+            vocabulary (text.Vocabulary): Vocabulary from the training set
         """
         self.encoder = CNN_Encoder(embedding_dim)
-        self.vocab_size = len(tokenizer.word_index) + 1
-        self.decoder = RNN_Decoder(embedding_dim, rnn_units, self.vocab_size)
-        self.tokenizer = tokenizer
-
-    def compile(optimizer, loss):
-        """Configures the model for training.
-        
-        Args:
-            optimizer (String): name of optimizer (or optimizer instance)
-            loss (String): name of objective function (or objective function)
-        Raises:
-            ValueError: In case of invalid arguments for `optimizer`, `loss`
-        """
-        self.optimizer = optimizers.get
+        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size, weight_initialization)
+        self.tokenizer = vocabulary.tokenizer
 
 
 class BahdanauAttention(tf.keras.Model):
@@ -88,15 +78,15 @@ class RNN_Decoder(tf.keras.Model):
 
     """
 
-    def __init__(self, embedding_dim, units, vocab_size):
+    def __init__(self, embedding_dim, units, vocab_size, weight_initilization):
         super(RNN_Decoder, self).__init__()
         self.units = units
 
         self.embedding = Embedding(vocab_size, embedding_dim)
-        self.gru = GRU(self.units,
+        self.rnn = GRU(self.units,
                                        return_sequences=True,
                                        return_state=True,
-                                       recurrent_initializer='glorot_uniform')
+                                       recurrent_initializer=weight_initilization)
         self.fc1 = Dense(self.units)
         self.fc2 = Dense(vocab_size)
 
@@ -114,7 +104,7 @@ class RNN_Decoder(tf.keras.Model):
         x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
         # passing the concatenated vector to the GRU
-        output, state = self.gru(x)
+        output, state = self.rnn(x)
 
         # shape == (batch_size, max_length, hidden_size)
         x = self.fc1(output)
@@ -131,18 +121,19 @@ class RNN_Decoder(tf.keras.Model):
         return tf.zeros((batch_size, self.units))
 
 
-def build_model(tokenizer, config):
+def build_model(config, vocabulary):
     """Builds end-to-end model with CNN encoder, RNN decoder, and Attention mechanism.
 
     This is a helper method that extracts configuration information from the config object
     
-    Args:
-        tokenizer (tf.keras.preprocessing.text.Tokenizer): Tokenizer fitted to the training captions
+    Arguments:
         config (util.Config): Values for various configuration options.
     
     Returns:
-        model.ImageCaptionModel: Full model, including encoder, decoder and tokenizer
+        model.ImageCaptionModel: Full model, including encoder, decoder and attention
     """
 
-    model = ImageCaptionModel(config.embedding_dim, config.rnn_units, tokenizer)
+    model = ImageCaptionModel(
+        config.embedding_dim, config.rnn_units, config.weight_initialization, vocabulary)
     return model
+    

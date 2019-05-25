@@ -5,20 +5,21 @@ import tensorflow as tf
 
 from absl import app, flags, logging
 from config import Config
-from dataset import prepare_train_data, prepare_eval_data
-from models import build_model
+from images import preprocess_images
+from evaluation import evaluate
+from text import load_or_build_vocabulary
 from training import train
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('phase', None,
-                    'The phase can be prepare, train, eval or test')
+                    'The phase can be prepare, train, eval or infer')
 
 flags.DEFINE_boolean('load', True,
                         'Turn on to load a pretrained model from either \
                         the latest checkpoint or a specified file')
 
-flags.DEFINE_string('model_file', None,
-                    'If specified, load a pretrained model from this file')
+# flags.DEFINE_string('model_file', None,
+#                     'If specified, load a pretrained model from this file')
 
 flags.DEFINE_integer('epochs', None,
                     'If specified, train for this number of epochs. It will override config options')
@@ -30,10 +31,8 @@ flags.DEFINE_integer('examples', None,
 flags.mark_flag_as_required("phase")
 
 # Logging
-
 logging.set_verbosity(logging.INFO)
-tflogger = tf.get_logger()
-tflogger.setLevel('ERROR')
+tf.get_logger().setLevel('ERROR')
 
 def main(argv):
     """python image_captioning/main.py --train --log_dir log
@@ -57,7 +56,7 @@ def main(argv):
         config.num_epochs=FLAGS.epochs
 
     if FLAGS.examples:
-        config.num_examples=FLAGS.examples
+        config.num_train_examples=FLAGS.examples
 
     if FLAGS.load is False:
         config.resume_from_checkpoint = False 
@@ -65,15 +64,19 @@ def main(argv):
     logging.info('Running %s phase', config.phase)
 
     if FLAGS.phase == 'prepare':
-        # preparation phase (extracts and saves image features for later use)
-        config.extract_image_features = True
-        train_dataset = prepare_train_data(config)
-    elif FLAGS.phase == 'train':
-        # training phase
-        train_dataset = prepare_train_data(config)
-        tokenizer = train_dataset.tokenizer
-        model = build_model(tokenizer, config)
-        train(model, train_dataset, config)
+        # build vocabulary
+        load_or_build_vocabulary(config)
+        # extracts and saves image features for later use
+        if config.extract_image_features:
+            preprocess_images(config)
+
+    elif FLAGS.phase == 'train': 
+        # training phase: build and trains an image captioning model
+        train(config)
+        
+    elif FLAGS.phase == 'eval':
+        # evaluation phase: evaluates a saved model on the validation data
+        evaluate(config)
 
 if __name__ == '__main__':
   app.run(main)

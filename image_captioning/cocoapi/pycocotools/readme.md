@@ -1,0 +1,1 @@
+This is modified version of the MS COCO API downloaded from https://github.com/cocodataset/cocoapi/
