@@ -94,11 +94,6 @@ def generate_sequences_argmax(model, img_features, sequence_length):
         # predictions shape = (batch_size, vocabulary_size)
         predicted_word_idxs = tf.argmax(predictions, axis=1)
         predicted_sequences.append(predicted_word_idxs)
-        # predicted_word = tokenizer.index_word[predicted_word_idx]
-        # if predicted_word == '<end>':
-        #     break
-        # else:
-        #     predicted_caption.append(predicted_word)
         dec_input = tf.expand_dims(predicted_word_idxs, 1)
     predicted_sequences = tf.stack(predicted_sequences,axis=1)
     return predicted_sequences.numpy()
@@ -152,8 +147,8 @@ def eval(model, eval_dataset, vocabulary, config):
             # score = caption_data[k][0].score
             predicted_caption = vocabulary.sequence2sentence(sequence)
             results.append({'image_id': eval_dataset.image_ids[i].item(),
-                            'caption': predicted_caption,
-                            'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
+                            'caption': predicted_caption
+                            # 'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
                             })
             i += 1
 

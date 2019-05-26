@@ -285,20 +285,47 @@ class COCO:
                 urllib.urlretrieve(img['coco_url'], fname)
             print('downloaded %d/%d images (t=%.1fs)'%(i, N, time.time()- tic))
 
-    def get_image_ids(self):
-        image_ids = [self.anns[ann_id]['image_id'] for ann_id in self.anns]
-        return image_ids
+    # def get_image_ids(self):
+    #     image_ids = [self.anns[ann_id]['image_id'] for ann_id in self.anns]
+    #     return image_ids
 
-    def get_image_files(self, image_dir):
-        image_ids = self.get_image_ids()
-        return [os.path.join(image_dir,self.imgs[img_id]['file_name']) for img_id in image_ids]
+    # def get_image_files(self, image_dir):
+    #     image_ids = self.get_image_ids()
+    #     return [os.path.join(image_dir,self.imgs[img_id]['file_name']) for img_id in image_ids]
 
-    # def get_image_files_by_id(self, image_dir, image_ids)
-    #     image_files = [os.path.join(image_dir, self.imgs[img_id]['file_name']) for img_id in image_ids]
-    #     return image_files
+    def get_all_image_ids(self):
+        """Get the complete list of unique image ids
+        
+        Returns:
+            list of string -- Complete list of unique image ids
+        """
+        return list(self.imgs.keys())
 
-    def get_text_captions(self):
-        captions = [self.anns[ann_id]['caption'] for ann_id in self.anns]
+    def get_all_image_filenames(self):
+        img_filenames = [img['file_name'] for id, img in self.imgs.items()]
+
+    def get_image_filenames(self, image_ids=[]):
+        if image_ids==[]:
+            image_ids = self.imgs.keys()
+        image_filenames = [self.imgs[img_id]['file_name'] for img_id in image_ids]
+        return image_filenames
+
+    def get_image_files_by_id(self, image_dir, image_ids):
+        image_files = [os.path.join(image_dir, self.imgs[img_id]['file_name']) for img_id in image_ids]
+        return image_files
+
+    def get_example_captions(self, image_ids):
+        example_captions = {}
+        for ann in self.anns.values():
+            img_id = ann['image_id']
+            if img_id not in example_captions:
+                example_captions[img_id] = ann['caption']
+        captions_list = [example_captions[img_id] for img_id in image_ids]
+        return captions_list
+
+    def get_all_captions(self):
+        # captions = [self.anns[ann_id]['caption'] for ann_id in self.anns]
+        captions = [ann['caption'] for ann_id, ann in self.anns.items()]
         return captions
 
     def process_dataset(self):
