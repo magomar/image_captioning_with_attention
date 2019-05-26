@@ -1,9 +1,11 @@
 import json
 import os
+import time
 
 import tensorflow as tf
 
 from absl import logging
+from cocoapi.pycocoevalcap.eval import COCOEvalCap
 from dataset import prepare_eval_data
 from models import build_model
 from training import get_checkpoint_manager
@@ -85,20 +87,16 @@ def generate_sequences_argmax(model, img_features, sequence_length):
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * batch_size, 1)
     # Passes visual features through encoder
     features = encoder(img_features)
+    predicted_sequences = []
     for i in range(sequence_length):
         # Passing input, features and hidden state through the decoder
         predictions, hidden, _ = decoder(dec_input, features, hidden)
         # predictions shape = (batch_size, vocabulary_size)
         predicted_word_idxs = tf.argmax(predictions, axis=1)
-        predicted_sequences.append(predicted_word_idxs.numpy())
-        # predicted_word = tokenizer.index_word[predicted_word_idx]
-        # if predicted_word == '<end>':
-        #     break
-        # else:
-        #     predicted_caption.append(predicted_word)
+        predicted_sequences.append(predicted_word_idxs)
         dec_input = tf.expand_dims(predicted_word_idxs, 1)
-
-    return predicted_sequences
+    predicted_sequences = tf.stack(predicted_sequences,axis=1)
+    return predicted_sequences.numpy()
 
 def eval(model, eval_dataset, vocabulary, config):
     """Generate captions on the given dataset
@@ -149,12 +147,11 @@ def eval(model, eval_dataset, vocabulary, config):
             # score = caption_data[k][0].score
             predicted_caption = vocabulary.sequence2sentence(sequence)
             results.append({'image_id': eval_dataset.image_ids[i].item(),
-                            'caption': predicted_caption,
-                            'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
+                            'caption': predicted_caption
+                            # 'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
                             })
             i += 1
-        # results.extend(batch_results)
-    
+
     # Save results to file
     eval_dir = os.path.abspath(config.eval_result_dir)
     if not os.path.exists(eval_dir):
@@ -179,107 +176,14 @@ def evaluate(config):
 
     eval_dataset, vocabulary, coco_eval = prepare_eval_data(config)
     model = build_model(config, vocabulary)
-    results = eval(model, eval_dataset, vocabulary, config)
+    # start = time.time()
+    # results = eval(model, eval_dataset, vocabulary, config)
+    # logging.info('Total caption generation time: %d seconds', time.time() - start)
 
-#############################################################################################
-
-#############################################################################################
-
-#############################################################################################
-
-#############################################################################################
-
-#############################################################################################
-
-#############################################################################################
-
-#############################################################################################
-
-
-def generate_caption_argmax(model, img_features, sequence_length):
-    # get model components (encoder, decoder and tokenizer)
-    encoder = model.encoder
-    decoder = model.decoder
-    tokenizer = model.tokenizer
-    # Initializing the hidden state for each batch, since captions are not related from image to image
-    hidden = decoder.reset_state(batch_size=1)
-    # Expands input to decoder
-    dec_input = tf.expand_dims([tokenizer.word_index['<start>']], 0)
-    # Passes visual features through encoder
-    features = encoder(img_features)
-    predicted_caption = []
-    for i in range(sequence_length):
-        # Passing input, features and hidden state through the decoder
-        predictions, hidden, attention_weights = decoder(dec_input, features, hidden)
-        predicted_word_idx = tf.argmax(predictions[0]).numpy()
-        predicted_word = tokenizer.index_word[predicted_word_idx]
-        if predicted_word == '<end>':
-            break
-        else:
-            predicted_caption.append(predicted_word)
-        dec_input = tf.expand_dims([predicted_word_idx], 0)
-    return " ".join(predicted_caption)
-
-
-def eval2(model, eval_dataset, vocabulary, config):
-    """Generate captions on the given dataset
-    
-    Arguments:
-        model {models.ImageCaptionModel} -- The full image captioning model
-        eval_dataset {dataset.DataSet} -- Evaluation dataset
-        config (util.Config): Values for various configuration options
-    
-    Returns:
-        list of float -- List of losses per batch of training
-    """
-
-    # Get the evaluation dataset and parameters.
-    dataset = eval_dataset.dataset
-    num_examples = eval_dataset.num_instances
-    batch_size = eval_dataset.batch_size
-    num_batches = eval_dataset.num_batches
-    # Need an optimizer to recreate model from checkpoint
-    # Although it is not being used for evaluation
-    optimizer = tf.optimizers.get(config.optimizer)
-    
-    logging.info("Evaluating %d examples", num_examples)
-    logging.info("Divided into %d batches of size %d", num_batches, batch_size)
-
-    # load model from last checkpoint
-    ckpt_manager, ckpt = get_checkpoint_manager(model, optimizer, config.checkpoints_dir, config.max_checkpoints)
-    status = ckpt.restore(ckpt_manager.latest_checkpoint)
-    if ckpt_manager.latest_checkpoint:
-        # assert_consumed() raises an error because of delayed restoration 
-        # See https://www.tensorflow.org/alpha/guide/checkpoints#delayed_restorations
-        # status.assert_consumed() 
-        status.assert_existing_objects_matched()
-    epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
-
-    results = []
-    i = 0
-    # Iterate over the batches of the dataset.
-    for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):      
-        # Obtain the actual size of this batch,  since it may differ 
-        # from predefined batchsize when running the last batch of an epoch
-        batch_size=target.shape[0]
-        sequence_length=target.shape[1]
-
-        batch_results = []
-        for k, (img_feat, tgt) in enumerate(zip(img_features, target)):
-            predicted_caption = generate_caption_argmax(model, img_feat, sequence_length) 
-            batch_results.append({'image_id': eval_dataset.image_ids[i].item(),
-                                  'caption': predicted_caption,
-                                #   'true caption': vocabulary.sequence2sentence(tgt.numpy())
-                                  'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
-                                  })
-            i += 1
-        results.extend(batch_results)
-    
-    # Save results to file
-    eval_dir = os.path.abspath(config.eval_result_dir)
-    if not os.path.exists(eval_dir):
-        os.mkdir(eval_dir)
-    with open(config.eval_result_file, 'w') as handle:
-        json.dump(results, handle)
-
-    return results
+    # Evaluate these captions
+    start = time.time()
+    coco_eval_result = coco_eval.loadRes(config.eval_result_file)
+    scorer = COCOEvalCap(coco_eval, coco_eval_result)
+    scorer.evaluate()
+    logging.info("Evaluation complete.")
+    logging.info('Total evaluation time: %d seconds', time.time() - start)

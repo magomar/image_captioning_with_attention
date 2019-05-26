@@ -85,7 +85,7 @@ def eval(model, eval_dataset, vocabulary, config):
     for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):      
         # Obtain the actual size of this batch,  since it may differ 
         # from predefined batchsize when running the last batch of an epoch
-        actual_batch_size=target.shape[0]
+        batch_size=target.shape[0]
         sequence_length=target.shape[1]
 
         batch_results = []
@@ -105,39 +105,5 @@ def eval(model, eval_dataset, vocabulary, config):
         os.mkdir(eval_dir)
     with open(config.eval_result_file, 'w') as handle:
         json.dump(results, handle)
-
-    return results
-
-    ????????????????
-
-    def generate_sequences_beam(model, img_features, sequence_length, beam_size=3):
-    # get model components (encoder, decoder and tokenizer)
-    encoder = model.encoder
-    decoder = model.decoder
-    tokenizer = model.tokenizer
-    # get batch size and caption length
-    actual_batch_size=target.shape[0]
-    sequence_length=target.shape[1]
-    # Initializing the hidden state for each batch, since captions are not related from image to image
-    hidden = decoder.reset_state(batch_size=actual_batch_size)
-    # Expands input to decoder, inserts a dimesion of 1 at axis 1
-    dec_input = tf.expand_dims([tokenizer.word_index['<start>']] * actual_batch_size, 1)
-    # Passes visual features through encoder
-    features = encoder(img_features)
-
-    contexts, initial_memory, initial_output = sess.run(
-            [self.conv_feats, self.initial_memory, self.initial_output],
-            feed_dict = {self.images: images})
-
-    partial_caption_data = []
-    complete_caption_data = []
-    for k in range(config.batch_size):
-        initial_beam = CaptionData(sequence = [],
-                                    memory = initial_memory[k],
-                                    output = initial_output[k],
-                                    score = 1.0)
-        partial_caption_data.append(TopN(config.beam_size))
-        partial_caption_data[-1].push(initial_beam)
-        complete_caption_data.append(TopN(config.beam_size))
 
     return results

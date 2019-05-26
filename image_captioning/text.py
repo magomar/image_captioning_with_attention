@@ -50,17 +50,29 @@ class Vocabulary(object):
         # adds a padding token
         self.tokenizer.word_index['<pad>'] = 0
         self.tokenizer.index_word[0] = '<pad>'
+        self.setup()
+
+
+    def setup(self):
         num_words = len(self.tokenizer.word_index) + 1
         if self.size > num_words:
             self.size = num_words
-
+        self.start = self.tokenizer.word_index['<start>']
+        self.end = self.tokenizer.word_index['<end>']
+        self.pad = self.tokenizer.word_index['<pad>']
 
     def sequence2sentence(self, sequence):
         """Converts a sequence back to a sentence
         
         """
-        sentence = ' '.join([self.tokenizer.index_word[i] for i in sequence if i not in [0]])
-        return sentence
+        # sentence = ' '.join([self.tokenizer.index_word[i] for i in sequence if i not in [self.pad,self.end]])
+        sentence = ''
+        for idx in sequence:
+            if idx in [self.pad, self.end]:
+                break
+            else:
+                sentence += ' ' + self.tokenizer.index_word[idx]
+        return sentence.lstrip()
 
     def process_sentences(self, sentences):
         """Tokenize and pads a list of sentences
@@ -97,9 +109,7 @@ class Vocabulary(object):
         """
         with open(save_file, 'rb') as handle:
             self.tokenizer = pickle.load(handle)
-        num_words = len(self.tokenizer.word_index) + 1
-        if self.size > num_words:
-            self.size = num_words
+        self.setup()
 
 def load_or_build_vocabulary(config, sentences = None):
     vocabulary = Vocabulary(config.vocabulary_size)

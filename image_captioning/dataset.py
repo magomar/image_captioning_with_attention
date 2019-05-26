@@ -67,7 +67,6 @@ def map_image_features_to_caption(image_file, caption):
     """ Load image features from npy file and maps them to caption.
     
     """
-
     image_features = np.load(image_file.decode('utf-8')+'.npy')
     return image_features, caption
 
@@ -80,15 +79,13 @@ def prepare_train_data(config):
     Returns:
         dataset.DataSet: Training dataset in tensorflow format, ready for batch consumption
     """
-
     logging.info("Preparing training data for %s...", config.dataset_name)
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.train_captions_file)
-    image_ids = coco.get_image_ids()
-    image_files = coco.get_image_files(config.train_image_dir)
-    text_captions = coco.get_text_captions()
-
+    text_captions = coco.get_all_captions()
+    image_ids = coco.get_all_image_ids()
+    image_files = coco.get_image_files(config.train_image_dir, image_ids)
     logging.info("Number of instances in the training set: %d", len(image_ids))
 
     num_examples = config.num_train_examples
@@ -134,9 +131,14 @@ def prepare_eval_data(config):
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.eval_captions_file)
-    image_ids = coco.get_image_ids()
-    image_files = coco.get_image_files(config.eval_image_dir)
-    text_captions = coco.get_text_captions()
+    # Retrieve list of unique image ids and their filenames
+    image_ids = coco.get_unique_image_ids()
+    image_files = coco.get_image_files(config.eval_image_dir, image_ids)
+
+    # TODO check this
+    # Captions are not needed for the evaluation Dataset
+    # although they can be useful for quick verification
+    text_captions = coco.get_example_captions(image_ids)
 
     logging.info("Number of instances in the validation set: %d", len(image_ids))
 
@@ -152,8 +154,8 @@ def prepare_eval_data(config):
 
     vocabulary = load_or_build_vocabulary(config)
 
-    
     captions = vocabulary.process_sentences(text_captions)
+
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Validation'),
@@ -163,7 +165,7 @@ def prepare_eval_data(config):
         config.batch_size,
         shuffle= False,
         buffer_size= config.buffer_size,
-        drop_remainder= config.drop_remainder
+        drop_remainder= False
     )
 
     return dataset, vocabulary, coco

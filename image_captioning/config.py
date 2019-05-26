@@ -15,7 +15,7 @@ class Config(object):
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 50
+        self.num_epochs = 100
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
@@ -46,7 +46,7 @@ class Config(object):
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
-        self.num_eval_examples =  128
+        self.num_eval_examples =  None
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './results/eval/images/'
