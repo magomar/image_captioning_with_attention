@@ -182,8 +182,8 @@ def evaluate(config):
 
     # Evaluate these captions
     start = time.time()
-    eval_result_coco = coco_eval.loadRes(config.eval_result_file)
-    scorer = COCOEvalCap(coco_eval, eval_result_coco)
+    coco_eval_result = coco_eval.loadRes(config.eval_result_file)
+    scorer = COCOEvalCap(coco_eval, coco_eval_result)
     scorer.evaluate()
     logging.info("Evaluation complete.")
     logging.info('Total evaluation time: %d seconds', time.time() - start)

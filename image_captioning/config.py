@@ -15,7 +15,7 @@ class Config(object):
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 50
+        self.num_epochs = 100
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
