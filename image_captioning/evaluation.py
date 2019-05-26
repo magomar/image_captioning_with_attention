@@ -176,14 +176,14 @@ def evaluate(config):
 
     eval_dataset, vocabulary, coco_eval = prepare_eval_data(config)
     model = build_model(config, vocabulary)
-    start = time.time()
-    results = eval(model, eval_dataset, vocabulary, config)
-    logging.info('Total caption generation time: %d seconds', time.time() - start)
+    # start = time.time()
+    # results = eval(model, eval_dataset, vocabulary, config)
+    # logging.info('Total caption generation time: %d seconds', time.time() - start)
 
     # Evaluate these captions
     start = time.time()
-    eval_result_coco = coco_eval.loadRes(config.eval_result_file)
-    scorer = COCOEvalCap(coco_eval, eval_result_coco)
+    coco_eval_result = coco_eval.loadRes(config.eval_result_file)
+    scorer = COCOEvalCap(coco_eval, coco_eval_result)
     scorer.evaluate()
     logging.info("Evaluation complete.")
     logging.info('Total evaluation time: %d seconds', time.time() - start)

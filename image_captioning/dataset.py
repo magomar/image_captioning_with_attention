@@ -67,7 +67,6 @@ def map_image_features_to_caption(image_file, caption):
     """ Load image features from npy file and maps them to caption.
     
     """
-
     image_features = np.load(image_file.decode('utf-8')+'.npy')
     return image_features, caption
 
@@ -80,28 +79,21 @@ def prepare_train_data(config):
     Returns:
         dataset.DataSet: Training dataset in tensorflow format, ready for batch consumption
     """
-
     logging.info("Preparing training data for %s...", config.dataset_name)
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.train_captions_file)
-    # img_ids = coco.get_all_image_ids()
-    # img_files = coco.get_image_files_by_id(config.train_image_dir, img_ids)
-    # text_captions = coco.get_all_captions()
-    text_captions = [coco.anns[ann_id]['caption'] for ann_id in coco.anns]
-    img_ids = [coco.anns[ann_id]['image_id'] for ann_id in coco.anns]
-    img_files = [os.path.join(config.train_image_dir,
-                                coco.imgs[img_id]['file_name'])
-                                for img_id in img_ids]
-
-    logging.info("Number of instances in the training set: %d", len(img_ids))
+    text_captions = coco.get_all_captions()
+    image_ids = coco.get_all_image_ids()
+    image_files = coco.get_image_files(config.train_image_dir, image_ids)
+    logging.info("Number of instances in the training set: %d", len(image_ids))
 
     num_examples = config.num_train_examples
     if num_examples is not None:
         # selecting the first num_examples
         logging.info("Using just %d instances for training", num_examples)
-        img_ids = img_ids[:num_examples]
-        img_files = img_files[:num_examples]
+        image_ids = image_ids[:num_examples]
+        image_files = image_files[:num_examples]
         text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full training dataset")
@@ -113,8 +105,8 @@ def prepare_train_data(config):
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Training'),
-        img_ids,
-        img_files,
+        image_ids,
+        image_files,
         captions,
         config.batch_size,
         shuffle= True,
@@ -139,24 +131,23 @@ def prepare_eval_data(config):
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.eval_captions_file)
-    img_ids = coco.get_all_image_ids() # Retrieve list of unique image ids
-    # img_filenames = coco.get_all_image_filenames()
-    # img_files = [os.path.join(config.eval_image_dir, filename) for filename in img_filenames]
-    img_files = coco.get_image_files_by_id(config.eval_image_dir, img_ids)
+    # Retrieve list of unique image ids and their filenames
+    image_ids = coco.get_unique_image_ids()
+    image_files = coco.get_image_files(config.eval_image_dir, image_ids)
 
     # TODO check this
     # Captions are not needed for the evaluation Dataset
     # although they can be useful for quick verification
-    text_captions = coco.get_example_captions(img_ids)
+    text_captions = coco.get_example_captions(image_ids)
 
-    logging.info("Number of instances in the validation set: %d", len(img_ids))
+    logging.info("Number of instances in the validation set: %d", len(image_ids))
 
     num_examples = config.num_eval_examples
     if num_examples is not None:
         # selecting the first num_examples
         logging.info("Using just %d instances for training", num_examples)
-        img_ids = img_ids[:num_examples]
-        img_files = img_files[:num_examples]
+        image_ids = image_ids[:num_examples]
+        image_files = image_files[:num_examples]
         text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full validation dataset")
@@ -168,13 +159,13 @@ def prepare_eval_data(config):
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Validation'),
-        img_ids,
-        img_files,
+        image_ids,
+        image_files,
         captions,
         config.batch_size,
         shuffle= False,
         buffer_size= config.buffer_size,
-        drop_remainder= config.drop_remainder
+        drop_remainder= False
     )
 
     return dataset, vocabulary, coco
