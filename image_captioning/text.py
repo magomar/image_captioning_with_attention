@@ -87,7 +87,7 @@ class Vocabulary(object):
         # Tokenize sentences (convert them to sequences of indexes)
         sequences = self.tokenizer.texts_to_sequences(sentences)
         max_length = max_sequence_length(sequences)
-        logging.info("Max caption length: %d", max_length)
+        logging.info("Processed %d sentences. Max length = %d", len(sequences), max_length)
         if self.sentence_length is None:
             self.sentence_length = max_length
         else:
@@ -116,7 +116,7 @@ def load_or_build_vocabulary(config, sentences = None):
     if not os.path.exists(config.vocabulary_file):
         if sentences is None:
             coco = COCO(config.train_captions_file)
-            sentences = coco.get_text_captions()
+            sentences = coco.get_all_captions()
         logging.info("Building the vocabulary...")
         vocabulary.build(sentences)
         vocabulary.save(config.vocabulary_file)

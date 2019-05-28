@@ -20,8 +20,9 @@ class COCOEvalCap:
         gts = {}
         res = {}
         for imgId in imgIds:
-            gts[imgId] = self.coco.imgToAnns[imgId]
-            res[imgId] = self.cocoRes.imgToAnns[imgId]
+            if imgId in self.cocoRes.imgToAnns:
+                gts[imgId] = self.coco.imgToAnns[imgId]
+                res[imgId] = self.cocoRes.imgToAnns[imgId]
 
         # =================================================
         # Set up scorers

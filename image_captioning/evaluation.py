@@ -40,7 +40,8 @@ class Hypothesis(object):
     Returns:
       New Hypothesis with the results from latest step.
     """
-    return Hypothesis(self.tokens + [token], self.log_prob + log_prob,
+    return Hypothesis(self.tokens + [token], 
+                      self.log_prob + log_prob,
                       new_state)
 
   @property
@@ -48,8 +49,8 @@ class Hypothesis(object):
     return self.tokens[-1]
 
   def __str__(self):
-    return ('Hypothesis(log prob = %.4f, tokens = %s)' % (self.log_prob,
-                                                          self.tokens))
+    return ('Hypothesis(log prob = %.4f, tokens = %s)' %
+            (self.log_prob, self.tokens))
 
 
 def best_hypothesis(hyps, normalize_by_length):
@@ -98,7 +99,7 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
     for idx in range(batch_size):
         # Initialize the hypothesis
         # Replicate the initial states K times for the first step.
-        hyps = [Hypothesis([start_token], 0.0, initial_states[idx])] * beam_width
+        hyps = [Hypothesis(tf.convert_to_tensor([start_token]), 0.0, initial_states[idx])] * beam_width
         results = []
         features = tf.stack([batch_features[idx]] * beam_width)
         # Run beam search
@@ -112,12 +113,12 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
             hidden = tf.convert_to_tensor(states)
             predictions, hidden, _ = decoder(dec_input, features, hidden)
             # topk_ids = tf.argsort(predictions, axis=1)[:,-beam_width:]
-            # topk_log_probs = predictions[:topk_ids]
+            # topk_log_probs = predictions[:,topk_ids]
             topk_log_probs, topk_ids = tf.nn.top_k(predictions,k=beam_width*2)
 
-            topk_log_probs = topk_log_probs.numpy()
-            topk_ids = topk_ids.numpy()
-            hidden = hidden.numpy()
+            # topk_log_probs = topk_log_probs.numpy()
+            # topk_ids = topk_ids.numpy()
+            # hidden = hidden.numpy()
 
             # Extend each hypothesis.
             all_hyps = []
@@ -146,8 +147,8 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
             results.extend(hyps)
 
         best_hyp = best_hypothesis(results, normalize_by_length)[0]
-        # predicted_sequences.append([t.numpy() for t in best_hyp.tokens])
-        predicted_sequences.append(best_hyp.tokens)
+        predicted_sequences.append([t.numpy() for t in best_hyp.tokens])
+        # predicted_sequences.append(best_hyp.tokens[1:])
 
     return predicted_sequences
 
@@ -230,14 +231,14 @@ def eval(model, eval_dataset, vocabulary, config):
         batch_size=target.shape[0]
         sequence_length=target.shape[1]
         if config.use_beam_search:
-            predicted_sequences = generate_captions_with_beam_search(
+            predicted_captions = generate_captions_with_beam_search(
                     model, img_features, sequence_length, vocabulary,
                     config.beam_width, config.normalize_by_length)
         else:
-            predicted_sequences = generate_sequences_with_greedy_search(
+            predicted_captions = generate_captions_with_greedy_search(
                     model, img_features, sequence_length, vocabulary)
         
-        for k, sequence in enumerate(predicted_sequences):
+        for k, sequence in enumerate(predicted_captions):
             predicted_caption = vocabulary.sequence2sentence(sequence)
             results.append({'image_id': eval_dataset.image_ids[i].item(),
                             'caption': predicted_caption

@@ -290,9 +290,7 @@ class COCO:
         """
         return list(self.imgs.keys())
 
-    def get_image_filenames(self, image_ids=[]):
-        if image_ids==[]:
-            image_ids = self.imgs.keys()
+    def get_image_filenames(self, image_ids):
         image_filenames = [self.imgs[img_id]['file_name'] for img_id in image_ids]
         return image_filenames
 
@@ -313,9 +311,7 @@ class COCO:
         captions = ['<start>%s<end>' % self.anns[ann_id]['caption'] for ann_id in self.anns]
         return captions
 
-    def get_image_files(self, image_dir, image_ids):
-        if image_ids==[]:
-            image_ids = self.imgs.keys()
+    def get_image_files(self, image_dir, image_ids=[]):
         image_files = [os.path.join(image_dir,
                        self.imgs[img_id]['file_name']) for img_id in image_ids]
         return image_files
@@ -332,45 +328,45 @@ class COCO:
                 q = q + '.'
             ann['caption'] = q
 
-    # def filter_by_cap_len(self, max_cap_len):
-    #     print("Filtering the captions by length...")
-    #     keep_ann = {}
-    #     keep_img = {}
-    #     for ann in tqdm(self.dataset['annotations']):
-    #         if len(word_tokenize(ann['caption']))<=max_cap_len:
-    #             keep_ann[ann['id']] = keep_ann.get(ann['id'], 0) + 1
-    #             keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
+    def filter_by_cap_len(self, max_cap_len):
+        print("Filtering the captions by length...")
+        keep_ann = {}
+        keep_img = {}
+        for ann in tqdm(self.dataset['annotations']):
+            if len(ann['caption'].split())<=max_cap_len:
+                keep_ann[ann['id']] = keep_ann.get(ann['id'], 0) + 1
+                keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
 
-    #     self.dataset['annotations'] = \
-    #         [ann for ann in self.dataset['annotations'] \
-    #         if keep_ann.get(ann['id'],0)>0]
-    #     self.dataset['images'] = \
-    #         [img for img in self.dataset['images'] \
-    #         if keep_img.get(img['id'],0)>0]
+        self.dataset['annotations'] = \
+            [ann for ann in self.dataset['annotations'] \
+            if keep_ann.get(ann['id'],0)>0]
+        self.dataset['images'] = \
+            [img for img in self.dataset['images'] \
+            if keep_img.get(img['id'],0)>0]
 
-    #     self.createIndex()
+        self.createIndex()
 
-    # def filter_by_words(self, vocab):
-    #     print("Filtering the captions by words...")
-    #     keep_ann = {}
-    #     keep_img = {}
-    #     for ann in tqdm(self.dataset['annotations']):
-    #         keep_ann[ann['id']] = 1
-    #         words_in_ann = word_tokenize(ann['caption'])
-    #         for word in words_in_ann:
-    #             if word not in vocab:
-    #                 keep_ann[ann['id']] = 0
-    #                 break
-    #         keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
+    def filter_by_words(self, vocab):
+        print("Filtering the captions by words...")
+        keep_ann = {}
+        keep_img = {}
+        for ann in tqdm(self.dataset['annotations']):
+            keep_ann[ann['id']] = 1
+            words_in_ann = ann['caption'].split()
+            for word in words_in_ann:
+                if word not in vocab:
+                    keep_ann[ann['id']] = 0
+                    break
+            keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
 
-    #     self.dataset['annotations'] = \
-    #         [ann for ann in self.dataset['annotations'] \
-    #         if keep_ann.get(ann['id'],0)>0]
-    #     self.dataset['images'] = \
-    #         [img for img in self.dataset['images'] \
-    #         if keep_img.get(img['id'],0)>0]
+        self.dataset['annotations'] = \
+            [ann for ann in self.dataset['annotations'] \
+            if keep_ann.get(ann['id'],0)>0]
+        self.dataset['images'] = \
+            [img for img in self.dataset['images'] \
+            if keep_img.get(img['id'],0)>0]
 
-    #     self.createIndex()
+        self.createIndex()
 
     # def all_captions(self):
     #     return [ann['caption'] for ann_id, ann in self.anns.items()]

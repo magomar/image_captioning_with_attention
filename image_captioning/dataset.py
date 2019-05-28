@@ -67,6 +67,7 @@ def map_image_features_to_caption(image_file, caption):
     """ Load image features from npy file and maps them to caption.
     
     """
+
     image_features = np.load(image_file.decode('utf-8')+'.npy')
     return image_features, caption
 
@@ -79,13 +80,15 @@ def prepare_train_data(config):
     Returns:
         dataset.DataSet: Training dataset in tensorflow format, ready for batch consumption
     """
+
     logging.info("Preparing training data for %s...", config.dataset_name)
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.train_captions_file)
-    text_captions = coco.get_all_captions()
     image_ids = coco.get_all_image_ids()
     image_files = coco.get_image_files(config.train_image_dir, image_ids)
+    text_captions = coco.get_all_captions()
+
     logging.info("Number of instances in the training set: %d", len(image_ids))
 
     num_examples = config.num_train_examples
@@ -131,31 +134,24 @@ def prepare_eval_data(config):
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.eval_captions_file)
-    # Retrieve list of unique image ids and their filenames
+    # if config.filter_by_caption_length:
+    #     coco.filter_by_cap_len(config.max_caption_length)
     image_ids = coco.get_unique_image_ids()
-    image_files = coco.get_image_files(config.eval_image_dir, image_ids)
-
-    # TODO check this
-    # Captions are not needed for the evaluation Dataset
-    # although they can be useful for quick verification
-    text_captions = coco.get_example_captions(image_ids)
-
     logging.info("Number of instances in the validation set: %d", len(image_ids))
-
     num_examples = config.num_eval_examples
-    if num_examples is not None:
+    if num_examples is not None and num_examples < len(image_ids):
         # selecting the first num_examples
-        logging.info("Using just %d instances for training", num_examples)
+        logging.info("Using just %d images for validation", num_examples)
         image_ids = image_ids[:num_examples]
-        image_files = image_files[:num_examples]
-        text_captions = text_captions[:num_examples]
     else:
         logging.info("Using full validation dataset")
+
+    image_files = coco.get_image_files(config.eval_image_dir, image_ids)
+    text_captions = coco.get_example_captions(image_ids)
 
     vocabulary = load_or_build_vocabulary(config)
 
     captions = vocabulary.process_sentences(text_captions)
-
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Validation'),

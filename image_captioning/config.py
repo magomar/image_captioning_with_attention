@@ -7,7 +7,6 @@ class Config(object):
         # about the model architecture
         self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
         self.rnn = 'gru'                        #  'gru' or 'lstm'
-        # self.max_caption_length = 20
         self.embedding_dim = 256
         self.rnn_units = 512
 
@@ -16,14 +15,16 @@ class Config(object):
 
         # about the optimization
         self.num_epochs = 40
-        self.batch_size = 64
-        self.optimizer = 'RMSProp'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
+        self.batch_size = 256
+        self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
         self.dataset_name = 'COCO_2014'
         self.buffer_size = 1000
         self.drop_remainder = True
+        self.filter_by_caption_length = True
+        self.max_caption_length = 30
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
