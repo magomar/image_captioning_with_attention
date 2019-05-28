@@ -20,7 +20,17 @@ class ImageHelper(object):
         image_file = os.path.join(self.path, '%s%012d.jpg' % (self.prefix, image_id))
         return image_file
 
-def generate_caption_argmax(model, img_features, sequence_length):
+def generate_one_sequence_greedy(model, img_features, sequence_length):
+    """Generate captions for one image
+    
+    Arguments:
+        model {models.ImageCaptionModel} -- Image captioning model
+        img_features {tensor} -- Features for one image
+        sequence_length {integer} -- Max sequence length
+    
+    Returns:
+        caption
+    """
     # get model components (encoder, decoder and tokenizer)
     encoder = model.encoder
     decoder = model.decoder
@@ -31,18 +41,17 @@ def generate_caption_argmax(model, img_features, sequence_length):
     dec_input = tf.expand_dims([tokenizer.word_index['<start>']], 0)
     # Passes visual features through encoder
     features = encoder(img_features)
-    predicted_caption = []
+    predicted_sequence = []
     for i in range(sequence_length):
         # Passing input, features and hidden state through the decoder
         predictions, hidden, attention_weights = decoder(dec_input, features, hidden)
         predicted_word_idx = tf.argmax(predictions[0]).numpy()
-        predicted_word = tokenizer.index_word[predicted_word_idx]
-        if predicted_word == '<end>':
+        if predicted_word_idx == tokenizer.word_index['<end>']:
             break
         else:
-            predicted_caption.append(predicted_word)
+            predicted_sequence.append(predicted_word_idx)
         dec_input = tf.expand_dims([predicted_word_idx], 0)
-    return " ".join(predicted_caption)
+    return predicted_sequence
 
 
 def eval(model, eval_dataset, vocabulary, config):
@@ -90,9 +99,10 @@ def eval(model, eval_dataset, vocabulary, config):
 
         batch_results = []
         for k, (img_feat, tgt) in enumerate(zip(img_features, target)):
-            predicted_caption = generate_caption_argmax(model, img_feat, sequence_length) 
+            predicted_sequence = generate_one_sequence_greedy(model, img_feat, sequence_length) 
+            predicted_caption = vocabulary.sequence2sentence(sequence)
             batch_results.append({'image_id': eval_dataset.image_ids[i].item(),
-                                  'caption': predicted_caption,
+                                  'caption': vocabulary.s,
                                 #   'true caption': vocabulary.sequence2sentence(tgt.numpy())
                                   'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
                                   })

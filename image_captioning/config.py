@@ -7,7 +7,7 @@ class Config(object):
         # about the model architecture
         self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
         self.rnn = 'gru'                        #  'gru' or 'lstm'
-        self.max_caption_length = 20
+        # self.max_caption_length = 20
         self.embedding_dim = 256
         self.rnn_units = 512
 
@@ -15,9 +15,9 @@ class Config(object):
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 100
+        self.num_epochs = 40
         self.batch_size = 64
-        self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
+        self.optimizer = 'RMSProp'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
@@ -47,6 +47,9 @@ class Config(object):
 
         # about the evaluation
         self.num_eval_examples =  None
+        self.beam_width = 3
+        self.use_beam_search = True
+        self.normalize_by_length = True
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
         self.eval_result_dir = './results/eval/images/'
