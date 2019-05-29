@@ -14,7 +14,7 @@ class Config(object):
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 40
+        self.num_epochs = 20
         self.batch_size = 256
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
@@ -48,7 +48,7 @@ class Config(object):
 
         # about the evaluation
         self.num_eval_examples =  None
-        self.beam_width = 3
+        self.beam_width = 5
         self.use_beam_search = True
         self.normalize_by_length = True
         self.eval_image_dir = './data/coco/val2014/'

@@ -91,34 +91,35 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
 
     # get batch size 
     batch_size=img_features.shape[0]
-    # Initialization of hidden states and decoder inputs
-    initial_states = decoder.reset_state(batch_size=batch_size)
+    # Initialization of hidden states 
+    batch_hidden = decoder.reset_state(batch_size=batch_size)
     # Passes visual features through encoder
     batch_features = encoder(img_features)
     predicted_sequences = []
     for idx in range(batch_size):
-        # Initialize the hypothesis
+        # Initialize the hypothesis: start_token will be the initial input
         # Replicate the initial states K times for the first step.
-        hyps = [Hypothesis(tf.convert_to_tensor([start_token]), 0.0, initial_states[idx])] * beam_width
-        results = []
+        hyps = [Hypothesis([tf.convert_to_tensor(start_token)], 0.0, batch_hidden[idx])] * beam_width
         features = tf.stack([batch_features[idx]] * beam_width)
         # Run beam search
+        results = []
         steps = 0
         while steps < sequence_length and len(results) < beam_width:
             latest_tokens = [h.latest_token for h in hyps]
-            states = [h.state for h in hyps]
+            states = [h.state for h in hyps]         
 
-            # Passing input, features and hidden state through the decoder
-            dec_input = tf.expand_dims(latest_tokens,1)
+            # Last tokens become next decoder input, a tensor with shape (beam_size, 1)
+            dec_input = tf.expand_dims(latest_tokens,1)    
+            # Convert array of hidden states to tensor with shape (beam_size, rnn_units)
             hidden = tf.convert_to_tensor(states)
+            # Pass input, image features and hidden state to get new predictions (output) and hidden state.
+            # Predictions is tensor with shape (beam_size, vocabulary_size) 
             predictions, hidden, _ = decoder(dec_input, features, hidden)
             # topk_ids = tf.argsort(predictions, axis=1)[:,-beam_width:]
-            # topk_log_probs = predictions[:,topk_ids]
+            # topk_log_probs = predictions[:topk_ids]
             topk_log_probs, topk_ids = tf.nn.top_k(predictions,k=beam_width*2)
 
-            # topk_log_probs = topk_log_probs.numpy()
             # topk_ids = topk_ids.numpy()
-            # hidden = hidden.numpy()
 
             # Extend each hypothesis.
             all_hyps = []
@@ -126,9 +127,9 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
             # steps take the best K results from K*K hyps.
             num_beam_source = 1 if steps == 0 else len(hyps)
             for i in xrange(num_beam_source):
-                h, ns = hyps[i], hidden[i]
+                hyp, hid = hyps[i], hidden[i]
                 for j in xrange(beam_width*2):
-                    all_hyps.append(h.extend(topk_ids[i, j], topk_log_probs[i, j], ns))
+                    all_hyps.append(hyp.extend(topk_ids[i, j], topk_log_probs[i, j], hid))
 
             # Filter and collect any hypotheses that have the end token.
             hyps = []
@@ -148,10 +149,9 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
 
         best_hyp = best_hypothesis(results, normalize_by_length)[0]
         predicted_sequences.append([t.numpy() for t in best_hyp.tokens])
-        # predicted_sequences.append(best_hyp.tokens[1:])
+        # predicted_sequences.append(best_hyp.tokens)
 
     return predicted_sequences
-
 
 def generate_captions_with_greedy_search(model, img_features, sequence_length, vocabulary):
     """Generate captions for a batch of image features
