@@ -2,14 +2,14 @@ import tensorflow as tf
 
 from tensorflow.keras import Model
 from tensorflow.keras.applications import InceptionV3, NASNetLarge
-from tensorflow.keras.layers import Dense, Embedding, GRU
+from tensorflow.keras.layers import Dense, Embedding
 
 class ImageCaptionModel(object):
     """CNN-Encoder + RNN-Decoder model with attention for image captioning.
 
     """
 
-    def __init__(self, embedding_dim, rnn_units, weight_initialization, vocabulary):
+    def __init__(self, embedding_dim, rnn, rnn_units, weight_initialization, vocabulary):
         """Creates a new instance ofg ImageCaptionModel class.
         
         Arguments:
@@ -18,7 +18,7 @@ class ImageCaptionModel(object):
             vocabulary (text.Vocabulary): Vocabulary from the training set
         """
         self.encoder = CNN_Encoder(embedding_dim)
-        self.decoder = RNN_Decoder(embedding_dim, rnn_units, vocabulary.size, weight_initialization)
+        self.decoder = RNN_Decoder(embedding_dim, rnn, rnn_units, vocabulary.size, weight_initialization)
         self.tokenizer = vocabulary.tokenizer
 
 
@@ -78,19 +78,24 @@ class RNN_Decoder(tf.keras.Model):
 
     """
 
-    def __init__(self, embedding_dim, units, vocab_size, weight_initilization):
+    def __init__(self, embedding_dim, rnn, units, vocab_size, weight_initilization):
         super(RNN_Decoder, self).__init__()
+        if rnn=='gru':
+            from tensorflow.keras.layers import GRU as RNNLayer
+        elif rnn == 'lstm':
+            from tensorflow.keras.layers import LSTM as RNNLayer
+
         self.units = units
 
         self.embedding = Embedding(vocab_size, embedding_dim)
-        self.rnn = GRU(self.units,
+        self.rnn = RNNLayer(units,
                        return_sequences=True,
                        return_state=True,
                        recurrent_initializer=weight_initilization)
-        self.fc1 = Dense(self.units)
+        self.fc1 = Dense(units)
         self.fc2 = Dense(vocab_size)
 
-        self.attention = BahdanauAttention(self.units)
+        self.attention = BahdanauAttention(units)
 
     def call(self, x, features, hidden):
 
@@ -134,6 +139,6 @@ def build_model(config, vocabulary):
     """
 
     model = ImageCaptionModel(
-        config.embedding_dim, config.rnn_units, config.weight_initialization, vocabulary)
+        config.embedding_dim, config.rnn, config.rnn_units, config.weight_initialization, vocabulary)
     return model
     

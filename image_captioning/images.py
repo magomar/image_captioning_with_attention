@@ -9,8 +9,12 @@ from absl import logging
 from cocoapi.pycocotools.coco import COCO
 from tensorflow.data import Dataset
 from tensorflow.keras import Model
-from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tqdm import tqdm
+
+IMAGE_SIZE = {'inception_V3': (299,299),
+              'xception':     (299,299),
+              'resnext':      (224,224),
+              'nasnet_large': (331,331)}
 
 def preprocess_images(config):
     """Extract image features and save them as numpy arrays.
@@ -23,85 +27,97 @@ def preprocess_images(config):
 
     logging.info("Preprocessing images (extracting image features)...")
 
+    cnn = config.cnn
+
     batchsize = config.image_features_batchsize
-
-    # TODO save image features in specific folder (config.features_dir)
-    # features_path = os.path.abspath(config.image_features_dir)
     
-    # Obtain image files for training dataset
-    coco_train = COCO(config.train_captions_file)
-    train_image_files = coco_train.get_image_files(config.train_image_dir)
-
-    # Obtain image files for evaluation dataset
-    coco_eval = COCO(config.eval_captions_file)
-    eval_image_files = coco_eval.get_image_files(config.eval_image_dir)
+    # If needed create folder for saving image features
+    features_dir = config.image_features_dir
+    if not os.path.exists(features_dir):
+        os.makedirs(features_dir)
 
     # Create feature extraction layer
-    pretrained_image_model = get_image_features_extract_model(config.cnn)
+    encoder = get_image_encoder(cnn)
+
+    # Obtain image files for training dataset
+    coco_train = COCO(config.train_captions_file)
+    train_image_ids = coco_train.get_unique_image_ids()
+    # train_image_filenames = coco_train.get_image_filenames(train_image_ids)
+    
+    # Obtain image files for evaluation dataset
+    coco_eval = COCO(config.eval_captions_file)
+    eval_image_ids = coco_eval.get_unique_image_ids()
+    # eval_image_filenames = coco_eval.get_image_filenames(eval_image_ids)
+    
+    image_files = coco_train.get_image_files(config.train_image_dir, train_image_ids) \
+                + coco_eval.get_image_files(config.eval_image_dir, eval_image_ids)
 
     # Create a dataset with images ready to be fed into the encoder (cnn for extracting image features) in batches 
-    images_to_process = sorted(set(train_image_files + eval_image_files))
-    image_dataset = Dataset.from_tensor_slices(images_to_process)
-    if config.cnn == 'inception_v3':
-        image_dataset = image_dataset.map(
-            load_image_inception_v3, num_parallel_calls=tf.data.experimental.AUTOTUNE
-            ).batch(batchsize)
-    elif config.cnn == 'nasnet':
-        image_dataset = image_dataset.map(
-            load_image_nasnet, num_parallel_calls=tf.data.experimental.AUTOTUNE
+    image_dataset = Dataset.from_tensor_slices(sorted(set(image_files)))
+    image_dataset = image_dataset.map(
+            image_preprocessing_function(cnn), num_parallel_calls=tf.data.experimental.AUTOTUNE
             ).batch(batchsize)
 
-    for image, image_file in tqdm(image_dataset):
-        batch_features = pretrained_image_model(image)
-        batch_features = tf.reshape(
-            batch_features, (batch_features.shape[0], -1, batch_features.shape[3]))
-        # Save image features with same name of image plus '.npy'
-        for bf, p in zip(batch_features, image_file):
-            img_path = p.numpy().decode("utf-8")
-            np.save(img_path, bf.numpy())
+    features_dir = os.path.join(features_dir, cnn)
+    if not os.path.exists(features_dir):
+        os.makedirs(features_dir)
 
-def load_image_inception_v3(image_file):
-    """Loads an image from file, and transforms it into the Inception-V3 format.
+    for images, image_filenames in tqdm(image_dataset, desc='image_batch'):
+        # obtain batch of image features
+        image_features = encoder(images)
+        image_features = tf.reshape(
+            image_features, (image_features.shape[0], -1, image_features.shape[3]))
+        # Save image features as '.npy' files
+        for img_features, img_filename in zip(image_features, image_filenames):
+            features_path = os.path.join(
+                    config.image_features_dir, cnn, 
+                    os.path.basename(img_filename.numpy().decode('utf-8'))
+                    )
+            np.save(features_path, img_features.numpy())
+
+def image_preprocessing_function(cnn):
+    """Returns a function that can load and preprocess images for a specific cnn model.
     
-    Image data should be reshaped to (299, 299, 3)
-
-    Arguments:
-        image_file {String} -- Path to image file
-    
-    Returns:
-        tensor -- Image features with shape (8, 8, 2048)
-    """
-
-    image = tf.io.read_file(image_file)
-    image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.resize(image, (299, 299))
-    image = tf.keras.applications.inception_v3.preprocess_input(image)
-    return image, image_file
-
-def load_image_nasnet(image_file):
-    """Loads an image from file, and transforms it into the NASNet format.
-    
-    Image data should be reshaped to (3, 331, 331)
-
-    Arguments:
-        image_file {String} -- Path to image file
+    Args:
+        cnn {string} -- Name of the CNN used to encode image features
     
     Returns:
-        tensor -- Image features with shape (8, 8, 4032)
+        function -- Function to load and prepare images for the given CNN
     """
-    
-    image = tf.io.read_file(image_file)
-    image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.resize(image, (299, 299))
-    image = tf.keras.applications.nasnet.preprocess_input(image)
-    return image, image_file
+    image_size = IMAGE_SIZE[cnn]
+    if cnn == 'inception_v3':
+        from tensorflow.keras.applications.inception_v3 import preprocess_input
+    elif cnn == 'xception':
+        from tensorflow.keras.applications.xception import preprocess_input
+    elif cnn == 'nasnet_large':
+        from tensorflow.keras.applications.nasnet import preprocess_input
+    elif cnn == 'resnext':
+        from tensorflow.keras.applications.resnext import preprocess_input
 
-def get_image_features_extract_model(cnn_name):
-    if cnn_name == 'inception_v3':
-         # Create feature extraction layer based on pretrained Inception-V3 model
-        image_model = InceptionV3(include_top=False, weights='imagenet')
-    elif cnn_name == 'nasnet':
-        image_model = NASNetLarge(include_top=False, weights='imagenet')
+    def load_and_preprocess_image(image_file):
+        image = tf.io.read_file(image_file)
+        image = tf.image.decode_jpeg(image, channels=3)
+        image = tf.image.resize(image, image_size)
+        image = preprocess_input(image)
+        return image, image_file
+    return load_and_preprocess_image
+
+def get_image_encoder(cnn):
+    """Create feature extraction layer for the specified cnn.
+    
+    Supports Inception_V3 and NASNet
+    """
+
+    if cnn == 'inception_v3':
+        from tensorflow.keras.applications.inception_v3 import InceptionV3 as PTModel
+    elif cnn == 'xception':
+        from tensorflow.keras.applications.xception import Xception as PTModel
+    elif cnn == 'nasnet_large':
+        from tensorflow.keras.applications.nasnet import NASNetLarge as PTModel
+    elif cnn == 'resnext':
+        from tensorflow.keras.applications.resnext import Resnext as PTModel
+
+    image_model = PTModel(include_top=False, weights='imagenet')
     new_input = image_model.input
     hidden_layer = image_model.layers[-1].output
     pretrained_image_model = Model(new_input, hidden_layer)

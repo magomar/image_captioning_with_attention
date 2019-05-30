@@ -16,7 +16,7 @@ class Vocabulary(object):
     
     """
 
-    def __init__(self, vocabulary_size, sentence_length=None, save_file=None):
+    def __init__(self, vocabulary_size, sequence_length=None, save_file=None):
         """[summary]
         
         Arguments:
@@ -26,7 +26,7 @@ class Vocabulary(object):
             save_file {String} -- File path to serialize vocabulary (default: {None})
         """
         self.size = vocabulary_size
-        self.sentence_length = sentence_length
+        self.sequence_length = sequence_length
         if save_file is not None:
             self.load(save_file)
 
@@ -88,13 +88,13 @@ class Vocabulary(object):
         sequences = self.tokenizer.texts_to_sequences(sentences)
         max_length = max_sequence_length(sequences)
         logging.info("Processed %d sentences. Max length = %d", len(sequences), max_length)
-        if self.sentence_length is None:
-            self.sentence_length = max_length
+        if self.sequence_length is None:
+            self.sequence_length = max_length
         else:
-            logging.info("But it is set to : %d", self.sentence_length)
+            logging.info("But it is set to : %d", self.sequence_length)
         # Pad sequences to met the max length.
         # If maxlen parameter is not provided, it is computed automatically
-        sequences = pad_sequences(sequences, maxlen=self.sentence_length, padding='post')
+        sequences = pad_sequences(sequences, maxlen=self.sequence_length, padding='post')
         return sequences
 
     def save(self, save_file):
@@ -111,11 +111,13 @@ class Vocabulary(object):
             self.tokenizer = pickle.load(handle)
         self.setup()
 
-def load_or_build_vocabulary(config, sentences = None):
+def load_or_build_vocabulary(config, sentences=None):
     vocabulary = Vocabulary(config.vocabulary_size)
     if not os.path.exists(config.vocabulary_file):
         if sentences is None:
             coco = COCO(config.train_captions_file)
+            if config.filter_by_caption_length:
+                coco.filter_by_cap_len(config.max_caption_length)
             sentences = coco.get_all_captions()
         logging.info("Building the vocabulary...")
         vocabulary.build(sentences)

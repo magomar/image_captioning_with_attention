@@ -147,7 +147,8 @@ def fit(model, train_dataset, config):
     
     if resume_training:
         start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
-        logging.info("Resuming training from epoch %d", start_epoch) 
+        if start_epoch < config.num_epochs:
+            logging.info("Resuming training from epoch %d", start_epoch) 
     else:
         start_epoch = 0
         logging.info("Starting training from scratch")
@@ -202,6 +203,10 @@ def train(config):
     model = build_model(config, vocabulary)
     start = time.time()
     losses = fit(model, train_dataset, config)
-    logging.info('Total training time: %d seconds', time.time() - start)
-    logging.info ('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
-    plot_loss(losses)
+    if len(losses) > 0:
+        logging.info('Total training time: %d seconds', time.time() - start)
+        logging.info('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
+        print('Final loss after %d epochs = %.6f' % (config.num_epochs, losses[-1]))
+        plot_loss(losses)
+    else:
+        print("No training done, since number of epochs was reached")

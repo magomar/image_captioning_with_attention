@@ -23,14 +23,14 @@ class DataSet(object):
     def __init__(self,
                 name,
                 image_ids,
-                image_files,
+                image_feature_files,
                 captions,
                 batch_size,
                 shuffle=False,
                 buffer_size=1000,
                 drop_remainder=False):
         self.image_ids = np.array(image_ids)
-        self.image_files = np.array(image_files)
+        self.image_features_files = np.array(image_feature_files)
         self.captions = captions
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -43,11 +43,11 @@ class DataSet(object):
 
         """
 
-        self.num_instances = len(self.image_files)
+        self.num_instances = len(self.image_features_files)
         self.num_batches = int(np.ceil(self.num_instances * 1.0 / self.batch_size))
         # self.num_batches = self.num_instances // self.batch_size
 
-        dataset = Dataset.from_tensor_slices((self.image_files, self.captions))
+        dataset = Dataset.from_tensor_slices((self.image_features_files, self.captions))
         # using map to load the numpy files in parallel
         dataset = dataset.map(
             lambda item1, item2: tf.numpy_function(
@@ -63,12 +63,12 @@ class DataSet(object):
 
         self.dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-def map_image_features_to_caption(image_file, caption):
+def map_image_features_to_caption(npy_file, caption):
     """ Load image features from npy file and maps them to caption.
     
     """
 
-    image_features = np.load(image_file.decode('utf-8')+'.npy')
+    image_features = np.load(npy_file.decode('utf-8'))
     return image_features, caption
 
 def prepare_train_data(config):
@@ -86,30 +86,30 @@ def prepare_train_data(config):
     # obtaining the image ids, image files and text captions
     coco = COCO(config.train_captions_file)
     image_ids = coco.get_all_image_ids()
-    image_files = coco.get_image_files(config.train_image_dir, image_ids)
+    dataset_size = len(image_ids)
+    logging.info("Total number of instances in the training set: %d", dataset_size)
+    if config.filter_by_caption_length:
+        coco.filter_by_cap_len(config.max_caption_length)
+    image_ids = coco.get_all_image_ids()
+
+    if len(image_ids) < dataset_size:
+        logging.info("Using just %d images for the training phase", len(image_ids))
+    else:
+        logging.info("Using full validation set")
+
+    image_filenames = coco.get_image_filenames(image_ids)
+    image_features_files = [os.path.join(config.image_features_dir, config.cnn, filename +'.npy') \
+                            for filename in image_filenames]
     text_captions = coco.get_all_captions()
 
-    logging.info("Number of instances in the training set: %d", len(image_ids))
-
-    num_examples = config.num_train_examples
-    if num_examples is not None:
-        # selecting the first num_examples
-        logging.info("Using just %d instances for training", num_examples)
-        image_ids = image_ids[:num_examples]
-        image_files = image_files[:num_examples]
-        text_captions = text_captions[:num_examples]
-    else:
-        logging.info("Using full training dataset")
-
-    # vocabulary = load_or_build_vocabulary(config, sentences = text_captions)
-    vocabulary = load_or_build_vocabulary(config)
+    vocabulary = load_or_build_vocabulary(config, text_captions)
 
     captions = vocabulary.process_sentences(text_captions)
 
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Training'),
         image_ids,
-        image_files,
+        image_features_files,
         captions,
         config.batch_size,
         shuffle= True,
@@ -142,12 +142,13 @@ def prepare_eval_data(config):
     image_ids = coco.get_unique_image_ids()
 
     if len(image_ids) < dataset_size:
-        # selecting the first num_examples
         logging.info("Using just %d images for the evaluation phase", len(image_ids))
     else:
         logging.info("Using full validation set")
 
-    image_files = coco.get_image_files(config.eval_image_dir, image_ids)
+    image_filenames = coco.get_image_filenames(image_ids)
+    image_features_files = [os.path.join(config.image_features_dir, config.cnn, filename +'.npy') \
+                        for filename in image_filenames]
     text_captions = coco.get_example_captions(image_ids)
 
     vocabulary = load_or_build_vocabulary(config)
@@ -157,7 +158,7 @@ def prepare_eval_data(config):
     dataset = DataSet(
         '%s_%s'.format(config.dataset_name, 'Validation'),
         image_ids,
-        image_files,
+        image_features_files,
         captions,
         config.batch_size,
         shuffle= False,

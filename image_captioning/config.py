@@ -5,12 +5,11 @@ class Config(object):
 
     def __init__(self):
         # general
-        self.log_dir = 'log'
-        # self.log_dir = None
+        self.log_dir = './log/'  # 'log' or None
 
         # about the model architecture
-        self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
-        self.rnn = 'gru'                        #  'gru' or 'lstm'
+        self.cnn = 'xception'  # 'inception_v3', 'xception, 'resnext', 'nasnet_large'
+        self.rnn = 'gru'       #  'gru' or 'lstm'
         self.embedding_dim = 256
         self.rnn_units = 512
 
@@ -18,7 +17,7 @@ class Config(object):
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
 
         # about the optimization
-        self.num_epochs = 20
+        self.num_epochs = 30
         self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
@@ -26,14 +25,14 @@ class Config(object):
         # about the dataset
         self.dataset_name = 'COCO_2014'
         self.buffer_size = 1000
-        self.drop_remainder = True
+        self.drop_remainder = False
         self.filter_by_caption_length = True
-        self.max_caption_length = 20
+        self.max_caption_length = 15
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
         self.checkpoints_dir = './models/checkpoints/'
-        self.summary_dir = './summary/'
+        self.summary_dir = './summary/' 
 
         # about the vocabulary
         self.vocabulary_file = './data/vocabulary.pickle'
@@ -42,7 +41,7 @@ class Config(object):
         # about image features
         self.extract_image_features = True
         self.image_features_batchsize = 16
-        # self.image_features_dir = './data/features/'
+        self.image_features_dir = './feature_maps_cache/'
 
         # about the training
         self.resume_from_checkpoint = True
@@ -51,7 +50,6 @@ class Config(object):
         self.train_captions_file = './data/coco/annotations/captions_train2014.json'
 
         # about the evaluation
-        self.num_eval_examples =  None
         self.beam_width = 3
         self.use_beam_search = True
         self.normalize_by_length = True

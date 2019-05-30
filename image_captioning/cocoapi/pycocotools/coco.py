@@ -311,7 +311,7 @@ class COCO:
         captions = ['<start>%s<end>' % self.anns[ann_id]['caption'] for ann_id in self.anns]
         return captions
 
-    def get_image_files(self, image_dir, image_ids=[]):
+    def get_image_files(self, image_dir, image_ids):
         image_files = [os.path.join(image_dir,
                        self.imgs[img_id]['file_name']) for img_id in image_ids]
         return image_files

@@ -59,9 +59,6 @@ def main(argv):
     if FLAGS.epochs:
         config.num_epochs=FLAGS.epochs
 
-    if FLAGS.examples:
-        config.num_train_examples=FLAGS.examples
-
     if FLAGS.load is False:
         config.resume_from_checkpoint = False 
 
