@@ -134,17 +134,18 @@ def prepare_eval_data(config):
 
     # obtaining the image ids, image files and text captions
     coco = COCO(config.eval_captions_file)
-    # if config.filter_by_caption_length:
-    #     coco.filter_by_cap_len(config.max_caption_length)
     image_ids = coco.get_unique_image_ids()
-    logging.info("Number of instances in the validation set: %d", len(image_ids))
-    num_examples = config.num_eval_examples
-    if num_examples is not None and num_examples < len(image_ids):
+    dataset_size = len(image_ids)
+    logging.info("Total number of instances in the validation set: %d", dataset_size)
+    if config.filter_by_caption_length:
+        coco.filter_by_cap_len(config.max_caption_length)
+    image_ids = coco.get_unique_image_ids()
+
+    if len(image_ids) < dataset_size:
         # selecting the first num_examples
-        logging.info("Using just %d images for validation", num_examples)
-        image_ids = image_ids[:num_examples]
+        logging.info("Using just %d images for the evaluation phase", len(image_ids))
     else:
-        logging.info("Using full validation dataset")
+        logging.info("Using full validation set")
 
     image_files = coco.get_image_files(config.eval_image_dir, image_ids)
     text_captions = coco.get_example_captions(image_ids)

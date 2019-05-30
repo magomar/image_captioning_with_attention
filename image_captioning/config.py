@@ -6,6 +6,7 @@ class Config(object):
     def __init__(self):
         # general
         self.log_dir = 'log'
+        # self.log_dir = None
 
         # about the model architecture
         self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
@@ -18,7 +19,7 @@ class Config(object):
 
         # about the optimization
         self.num_epochs = 20
-        self.batch_size = 256
+        self.batch_size = 64
         self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
@@ -27,7 +28,7 @@ class Config(object):
         self.buffer_size = 1000
         self.drop_remainder = True
         self.filter_by_caption_length = True
-        self.max_caption_length = 30
+        self.max_caption_length = 20
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 5
@@ -51,7 +52,7 @@ class Config(object):
 
         # about the evaluation
         self.num_eval_examples =  None
-        self.beam_width = 5
+        self.beam_width = 3
         self.use_beam_search = True
         self.normalize_by_length = True
         self.eval_image_dir = './data/coco/val2014/'

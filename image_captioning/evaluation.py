@@ -96,7 +96,7 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
     # Passes visual features through encoder
     batch_features = encoder(img_features)
     predicted_sequences = []
-    for idx in tqdm(range(batch_size)):
+    for idx in tqdm(range(batch_size), desc='beam'):
         # Initialize the hypothesis: start_token will be the initial input
         # Replicate the initial states K times for the first step.
         hyps = [Hypothesis([tf.convert_to_tensor(start_token)], 0.0, batch_hidden[idx])] * beam_width
@@ -115,10 +115,8 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
             # Pass input, image features and hidden state to get new predictions (output) and hidden state.
             # Predictions is tensor with shape (beam_size, vocabulary_size) 
             predictions, hidden, _ = decoder(dec_input, features, hidden)
-            # topk_ids = tf.argsort(predictions, axis=1)[:,-beam_width:]
-            # topk_log_probs = predictions[:topk_ids]
             topk_log_probs, topk_ids = tf.nn.top_k(predictions,k=beam_width*2)
-
+            
             # topk_ids = topk_ids.numpy()
 
             # Extend each hypothesis.
@@ -239,10 +237,10 @@ def eval(model, eval_dataset, vocabulary, config):
                     model, img_features, sequence_length, vocabulary)
         
         for k, sequence in enumerate(predicted_captions):
-            predicted_caption = vocabulary.sequence2sentence(sequence)
+            predicted_caption = vocabulary.seq2text(sequence)
             results.append({'image_id': eval_dataset.image_ids[i].item(),
                             'caption': predicted_caption
-                            # 'ground_truth': vocabulary.sequence2sentence(eval_dataset.captions[i])
+                            # 'ground_truth': vocabulary.seq2text(eval_dataset.captions[i])
                             })
             i += 1
 

@@ -330,43 +330,49 @@ class COCO:
 
     def filter_by_cap_len(self, max_cap_len):
         print("Filtering the captions by length...")
-        keep_ann = {}
-        keep_img = {}
+        remove_ann = set()
+        remove_img = set()
         for ann in tqdm(self.dataset['annotations']):
-            if len(ann['caption'].split())<=max_cap_len:
-                keep_ann[ann['id']] = keep_ann.get(ann['id'], 0) + 1
-                keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
+            if len(ann['caption'].split()) > max_cap_len:
+                img_id = ann['image_id']
+                remove_img.add(img_id)
+                anns_to_remove = [cap['id'] for cap in self.imgToAnns[img_id]]
+                remove_ann.update(anns_to_remove)
 
+        print("removing %d images and %d captions" % (len(remove_img), len(remove_ann)))
         self.dataset['annotations'] = \
             [ann for ann in self.dataset['annotations'] \
-            if keep_ann.get(ann['id'],0)>0]
+            if ann['id'] not in remove_ann ]
+
+
+
         self.dataset['images'] = \
             [img for img in self.dataset['images'] \
-            if keep_img.get(img['id'],0)>0]
+            if img['id'] not in remove_img ]
 
         self.createIndex()
 
-    def filter_by_words(self, vocab):
-        print("Filtering the captions by words...")
-        keep_ann = {}
-        keep_img = {}
-        for ann in tqdm(self.dataset['annotations']):
-            keep_ann[ann['id']] = 1
-            words_in_ann = ann['caption'].split()
-            for word in words_in_ann:
-                if word not in vocab:
-                    keep_ann[ann['id']] = 0
-                    break
-            keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
+    # def filter_by_words(self, vocab):
+    #     print("Filtering the captions by words...")
+    #     keep_ann = {}
+    #     keep_img = {}
+    #     for ann in tqdm(self.dataset['annotations']):
+    #         keep_ann[ann['id']] = 1
+    #         words_in_ann = ann['caption'].split()
+    #         for word in words_in_ann:
+    #             if word not in vocab:
+    #                 keep_ann[ann['id']] = 0
+    #                 break
+    #         keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
 
-        self.dataset['annotations'] = \
-            [ann for ann in self.dataset['annotations'] \
-            if keep_ann.get(ann['id'],0)>0]
-        self.dataset['images'] = \
-            [img for img in self.dataset['images'] \
-            if keep_img.get(img['id'],0)>0]
+    #     self.dataset['annotations'] = \
+    #         [ann for ann in self.dataset['annotations'] \
+    #         if keep_ann.get(ann['id'],0)>0]
+    #     self.dataset['images'] = \
+    #         [img for img in self.dataset['images'] \
+    #         if keep_img.get(img['id'],0)>0]
 
-        self.createIndex()
+    #     self.createIndex()
 
     # def all_captions(self):
     #     return [ann['caption'] for ann_id, ann in self.anns.items()]

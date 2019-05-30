@@ -61,7 +61,7 @@ class Vocabulary(object):
         self.end = self.tokenizer.word_index['<end>']
         self.pad = self.tokenizer.word_index['<pad>']
 
-    def sequence2sentence(self, sequence):
+    def seq2text(self, sequence):
         """Converts a sequence back to a sentence
         
         """
