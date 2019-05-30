@@ -84,9 +84,9 @@ class RNN_Decoder(tf.keras.Model):
 
         self.embedding = Embedding(vocab_size, embedding_dim)
         self.rnn = GRU(self.units,
-                                       return_sequences=True,
-                                       return_state=True,
-                                       recurrent_initializer=weight_initilization)
+                       return_sequences=True,
+                       return_state=True,
+                       recurrent_initializer=weight_initilization)
         self.fc1 = Dense(self.units)
         self.fc2 = Dense(vocab_size)
 

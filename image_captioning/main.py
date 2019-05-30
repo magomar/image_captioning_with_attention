@@ -41,6 +41,10 @@ def main(argv):
 
     del argv  # Unused.
     config = Config()
+
+    if config.log_dir is not None:
+        FLAGS.log_dir = config.log_dir
+
     config.phase = FLAGS.phase
 
     print('Running under Python {0[0]}.{0[1]}.{0[2]}'.format(sys.version_info),

@@ -96,7 +96,7 @@ def generate_captions_with_beam_search(model, img_features, sequence_length, voc
     # Passes visual features through encoder
     batch_features = encoder(img_features)
     predicted_sequences = []
-    for idx in range(batch_size):
+    for idx in tqdm(range(batch_size)):
         # Initialize the hypothesis: start_token will be the initial input
         # Replicate the initial states K times for the first step.
         hyps = [Hypothesis([tf.convert_to_tensor(start_token)], 0.0, batch_hidden[idx])] * beam_width

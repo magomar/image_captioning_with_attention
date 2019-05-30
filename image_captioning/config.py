@@ -4,6 +4,9 @@ class Config(object):
     """
 
     def __init__(self):
+        # general
+        self.log_dir = 'log'
+
         # about the model architecture
         self.cnn = 'inception_v3'               # 'inception_v3' or 'nasnet'
         self.rnn = 'gru'                        #  'gru' or 'lstm'
