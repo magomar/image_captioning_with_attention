@@ -127,7 +127,8 @@ dmypy.json
 .vscode/
 
 # project specific
-data/
-models/
-results/
-log/
+/data/
+/models/checkpoints/
+/results/
+/log/
+*.npy
