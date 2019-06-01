@@ -159,9 +159,9 @@ def fit(model, train_dataset, config):
     for epoch in range(start_epoch, num_epochs):
         start = time.time()
         total_loss = 0
-        
+        print("*** Epoch %d ***" % epoch)
         # Iterate over the batches of the dataset.
-        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):
+        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch', total=num_batches):
             batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
             total_loss += t_loss
 
@@ -199,6 +199,14 @@ def train(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
+    logging.info("cnn = %s", config.cnn)
+    logging.info("rnn = %s", config.rnn)
+    logging.info("embedding_dim = %s", config.embedding_dim)
+    logging.info("rnn_units = %s", config.rnn_units)
+    logging.info("weight_initialization = %s", config.weight_initialization)
+    logging.info("batch_size = %s", config.batch_size)
+    logging.info("optimizer = %s", config.optimizer)
+
     train_dataset, vocabulary = prepare_train_data(config)
     model = build_model(config, vocabulary)
     start = time.time()
