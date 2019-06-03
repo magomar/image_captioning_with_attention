@@ -223,7 +223,7 @@ def eval(model, eval_dataset, vocabulary, config):
     results = []
     i = 0
     # Iterate over the batches of the dataset.
-    for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):      
+    for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch', total=num_batches):      
         # Obtain the actual size of this batch,  since it may differ 
         # from predefined batchsize when running the last batch of an epoch
         batch_size=target.shape[0]
