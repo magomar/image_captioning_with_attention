@@ -92,7 +92,7 @@ def image_preprocessing_function(cnn):
     elif cnn == 'nasnet_large':
         from tensorflow.keras.applications.nasnet import preprocess_input
     elif cnn == 'resnext':
-        from tensorflow.keras.applications.resnext import preprocess_input
+        from tensorflow.keras_applications.resnext import preprocess_input
 
     def load_and_preprocess_image(image_file):
         image = tf.io.read_file(image_file)
@@ -115,7 +115,7 @@ def get_image_encoder(cnn):
     elif cnn == 'nasnet_large':
         from tensorflow.keras.applications.nasnet import NASNetLarge as PTModel
     elif cnn == 'resnext':
-        from tensorflow.keras.applications.resnext import Resnext as PTModel
+        from tensorflow.keras_applications.resnext import ResNeXt50 as PTModel
 
     image_model = PTModel(include_top=False, weights='imagenet')
     new_input = image_model.input
