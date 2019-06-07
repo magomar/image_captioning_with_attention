@@ -34,20 +34,22 @@ class BahdanauAttention(tf.keras.Model):
         self.V = Dense(1)
 
     def call(self, features, hidden):
-        # features(CNN_encoder output) shape == (batch_size, 64, embedding_dim)
+        # features(CNN_encoder output) shape == (batch_size, patches, embedding_dim)
+        # patches = number of image patches in last conv layer, eg. inception is 8x8 = 64
 
         # hidden shape == (batch_size, hidden_size)
         # hidden_with_time_axis shape == (batch_size, 1, hidden_size)
         hidden_with_time_axis = tf.expand_dims(hidden, 1)
 
-        # score shape == (batch_size, 64, hidden_size)
+        # score shape == (batch_size, patches, hidden_size)
         score = tf.nn.tanh(self.W1(features) + self.W2(hidden_with_time_axis))
 
-        # attention_weights shape == (batch_size, 64, 1)
+        # attention_weights shape == (batch_size, patches, 1)
         # we get 1 at the last axis because we are applying score to self.V
         attention_weights = tf.nn.softmax(self.V(score), axis=1)
 
         # context_vector shape after sum == (batch_size, hidden_size)
+        # TODO check why I'm getting context_vector with shape = (batch_size, embedding)
         context_vector = attention_weights * features
         context_vector = tf.reduce_sum(context_vector, axis=1)
 
@@ -65,11 +67,12 @@ class CNN_Encoder(tf.keras.Model):
     # This encoder only has to pass those features through a fully connected layer
     def __init__(self, embedding_dim):
         super(CNN_Encoder, self).__init__()
-        # shape after fc == (batch_size, 64, embedding_dim)
         self.fc = Dense(embedding_dim)
 
     def call(self, x):
+        # shape of x == (batch_size, patches, channels)
         x = self.fc(x)
+        # shape of x after fc == (batch_size, patches, embedding_dim)
         x = tf.nn.relu(x)
         return x
 
@@ -101,6 +104,9 @@ class RNN_Decoder(tf.keras.Model):
     def call(self, x, features, hidden):
 
         # defining attention as a separate model
+        # shape of context_vector == (batch_size, hidden_size)
+        # TODO Check shapes, context vector size should be (batch_size, hidden_size)
+        # shape of attention = (batch_size, patches, 1)
         context_vector, attention_weights = self.attention(features, hidden)
 
         # x shape after passing through embedding == (batch_size, 1, embedding_dim)
