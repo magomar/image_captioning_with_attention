@@ -84,7 +84,8 @@ class RNN_Decoder(tf.keras.Model):
             from tensorflow.keras.layers import GRU as RNNLayer
         elif rnn == 'lstm':
             from tensorflow.keras.layers import LSTM as RNNLayer
-
+        
+        self.rnn_type = rnn
         self.units = units
 
         self.embedding = Embedding(vocab_size, embedding_dim)
@@ -109,7 +110,10 @@ class RNN_Decoder(tf.keras.Model):
         x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
         # passing the concatenated vector to the GRU
-        output, state = self.rnn(x)
+        if self.rnn_type == 'gru':
+            output, state = self.rnn(x)
+        else: # self.rnn_type =='lstm'
+            output, state, _ = self.rnn(x)
 
         # shape == (batch_size, max_length, hidden_size)
         x = self.fc1(output)

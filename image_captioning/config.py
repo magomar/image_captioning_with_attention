@@ -8,8 +8,8 @@ class Config(object):
         self.log_dir = './log/'  # 'log' or None
 
         # about the model architecture
-        self.cnn = 'xception'  # 'inception_v3', 'xception, 'resnext', 'nasnet_large'
-        self.rnn = 'gru'       #  'gru' or 'lstm'
+        self.cnn = 'inception_v3'  # 'inception_v3', 'xception, 'resnext', 'nasnet_large'
+        self.rnn = 'lstm'       #  'gru' or 'lstm'
         self.embedding_dim = 256
         self.rnn_units = 512
 
@@ -51,7 +51,7 @@ class Config(object):
 
         # about the evaluation
         self.beam_width = 3
-        self.use_beam_search = True
+        self.use_beam_search = False
         self.normalize_by_length = True
         self.eval_image_dir = './data/coco/val2014/'
         self.eval_captions_file = './data/coco/annotations/captions_val2014.json'
