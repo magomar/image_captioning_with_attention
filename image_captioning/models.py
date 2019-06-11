@@ -106,6 +106,7 @@ class RNN_Decoder(tf.keras.Model):
         # defining attention as a separate model
         # shape of context_vector == (batch_size, hidden_size)
         # TODO Check shapes, context vector size should be (batch_size, hidden_size)
+        # but I'm getting (batch_size, embedding_dim)
         # shape of attention = (batch_size, patches, 1)
         context_vector, attention_weights = self.attention(features, hidden)
 

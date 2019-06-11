@@ -11,9 +11,10 @@ from tensorflow.data import Dataset
 from tensorflow.keras import Model
 from tqdm import tqdm
 
-IMAGE_SIZE = {'inception_V3': (299,299),
-              'xception':     (299,299),
-              'resnext':      (224,224),
+IMAGE_SIZE = {'vgg16': (224,224),
+              'inception_v3': (299,299),
+              'xception': (299,299),
+              'resnet50': (224,224),
               'nasnet_large': (331,331)}
 
 def preprocess_images(config):
@@ -85,14 +86,16 @@ def image_preprocessing_function(cnn):
         function -- Function to load and prepare images for the given CNN
     """
     image_size = IMAGE_SIZE[cnn]
-    if cnn == 'inception_v3':
+    if cnn == 'vgg16':
+        from tensorflow.keras.applications.vgg16 import preprocess_input
+    elif cnn == 'inception_v3':
         from tensorflow.keras.applications.inception_v3 import preprocess_input
     elif cnn == 'xception':
         from tensorflow.keras.applications.xception import preprocess_input
     elif cnn == 'nasnet_large':
         from tensorflow.keras.applications.nasnet import preprocess_input
-    elif cnn == 'resnext':
-        from tensorflow.keras_applications.resnext import preprocess_input
+    elif cnn == 'resnet50':
+        from tensorflow.keras.applications.resnet50 import preprocess_input
 
     def load_and_preprocess_image(image_file):
         image = tf.io.read_file(image_file)
@@ -107,15 +110,16 @@ def get_image_encoder(cnn):
     
     Supports Inception_V3 and NASNet
     """
-
-    if cnn == 'inception_v3':
+    if cnn == 'vgg16':
+        from tensorflow.keras.applications.vgg16 import VGG16 as PTModel
+    elif cnn == 'inception_v3':
         from tensorflow.keras.applications.inception_v3 import InceptionV3 as PTModel
     elif cnn == 'xception':
         from tensorflow.keras.applications.xception import Xception as PTModel
     elif cnn == 'nasnet_large':
         from tensorflow.keras.applications.nasnet import NASNetLarge as PTModel
-    elif cnn == 'resnext':
-        from tensorflow.keras_applications.resnext import ResNeXt50 as PTModel
+    elif cnn == 'resnet50':
+        from tensorflow.keras.applications.resnet50 import ResNet50 as PTModel
 
     image_model = PTModel(include_top=False, weights='imagenet')
     new_input = image_model.input
