@@ -9,15 +9,17 @@ class ImageCaptionModel(object):
 
     """
 
-    def __init__(self, embedding_dim, rnn, rnn_units, weight_initialization, vocabulary):
+    def __init__(self, embedding_dim, rnn, rnn_units, weight_initialization, vocabulary, num_features):
         """Creates a new instance ofg ImageCaptionModel class.
         
         Arguments:
             embedding_dim (integer): Number of dimensions of the embedding layer in the RNN_Decoder
+            rnn (string): name identifying the type of recurrent units, 'gru' or 'lstm'
             rnn_units (integer): Number of hidden units in the RNN_Decoder
+            weight_initialization (string): identifies the type of weight initialization 
             vocabulary (text.Vocabulary): Vocabulary from the training set
         """
-        self.encoder = CNN_Encoder(embedding_dim)
+        self.encoder = CNN_Encoder(num_features)
         self.decoder = RNN_Decoder(embedding_dim, rnn, rnn_units, vocabulary.size, weight_initialization)
         self.tokenizer = vocabulary.tokenizer
 
@@ -34,7 +36,7 @@ class BahdanauAttention(tf.keras.Model):
         self.V = Dense(1)
 
     def call(self, features, hidden):
-        # features(CNN_encoder output) shape == (batch_size, patches, embedding_dim)
+        # features(CNN_encoder output) shape == (batch_size, patches, num_features)
         # patches = number of image patches in last conv layer, eg. inception is 8x8 = 64
 
         # hidden shape == (batch_size, hidden_size)
@@ -48,8 +50,7 @@ class BahdanauAttention(tf.keras.Model):
         # we get 1 at the last axis because we are applying score to self.V
         attention_weights = tf.nn.softmax(self.V(score), axis=1)
 
-        # context_vector shape after sum == (batch_size, hidden_size)
-        # TODO check why I'm getting context_vector with shape = (batch_size, embedding)
+        # context_vector shape after sum == (batch_size, num_features)
         context_vector = attention_weights * features
         context_vector = tf.reduce_sum(context_vector, axis=1)
 
@@ -65,14 +66,14 @@ class CNN_Encoder(tf.keras.Model):
 
     # We have already extracted the features and saved them as npy arrays
     # This encoder only has to pass those features through a fully connected layer
-    def __init__(self, embedding_dim):
+    def __init__(self, num_features):
         super(CNN_Encoder, self).__init__()
-        self.fc = Dense(embedding_dim)
+        self.fc = Dense(num_features)
 
     def call(self, x):
         # shape of x == (batch_size, patches, channels)
         x = self.fc(x)
-        # shape of x after fc == (batch_size, patches, embedding_dim)
+        # shape of x after fc == (batch_size, patches, num_features)
         x = tf.nn.relu(x)
         return x
 
@@ -81,7 +82,7 @@ class RNN_Decoder(tf.keras.Model):
 
     """
 
-    def __init__(self, embedding_dim, rnn, units, vocab_size, weight_initilization):
+    def __init__(self, embedding_dim, rnn, units, vocab_size, weight_initialization):
         super(RNN_Decoder, self).__init__()
         if rnn=='gru':
             from tensorflow.keras.layers import GRU as RNNLayer
@@ -95,7 +96,7 @@ class RNN_Decoder(tf.keras.Model):
         self.rnn = RNNLayer(units,
                        return_sequences=True,
                        return_state=True,
-                       recurrent_initializer=weight_initilization)
+                       recurrent_initializer=weight_initialization)
         self.fc1 = Dense(units)
         self.fc2 = Dense(vocab_size)
 
@@ -104,19 +105,19 @@ class RNN_Decoder(tf.keras.Model):
     def call(self, x, features, hidden):
 
         # defining attention as a separate model
-        # shape of context_vector == (batch_size, hidden_size)
+        # shape of context_vector == (batch_size, num_features)
         # TODO Check shapes, context vector size should be (batch_size, hidden_size)
-        # but I'm getting (batch_size, embedding_dim)
+        # but I'm getting (batch_size, num_features)
         # shape of attention = (batch_size, patches, 1)
         context_vector, attention_weights = self.attention(features, hidden)
 
-        # x shape after passing through embedding == (batch_size, 1, embedding_dim)
+        # x shape after passing through embedding == (batch_size, 1, num_features)
         x = self.embedding(x)
 
-        # x shape after concatenation == (batch_size, 1, embedding_dim + hidden_size)
+        # x shape after concatenation == (batch_size, 1, num_features + hidden_size)
         x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
-        # passing the concatenated vector to the GRU
+        # passing the concatenated vector to the RNN
         if self.rnn_type == 'gru':
             output, state = self.rnn(x)
         else: # self.rnn_type =='lstm'
@@ -150,6 +151,11 @@ def build_model(config, vocabulary):
     """
 
     model = ImageCaptionModel(
-        config.embedding_dim, config.rnn, config.rnn_units, config.weight_initialization, vocabulary)
+                config.embedding_dim,
+                config.rnn,
+                config.rnn_units,
+                config.weight_initialization,
+                vocabulary,
+                config.num_features)
     return model
     

@@ -64,7 +64,7 @@ class DataSet(object):
         self.dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 def map_image_features_to_caption(npy_file, caption):
-    """ Load image features from npy file and maps them to caption.
+    """Load feature map from `npy_file` and map it to `caption`.
     
     """
 
@@ -72,7 +72,7 @@ def map_image_features_to_caption(npy_file, caption):
     return image_features, caption
 
 def prepare_train_data(config):
-    """Prepare the data for training the model.
+    """Prepare training dataset using `config` options
     
     Arguments:
         config (util.Config): Values for various configuration options.
