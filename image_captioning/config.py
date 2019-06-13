@@ -8,11 +8,11 @@ class Config(object):
         self.log_dir = './log/'  # 'log' or None
 
         # about the model architecture
-        self.cnn = 'vgg16'  #'vgg16', 'inception_v3', 'xception, 'resnet50', 'nasnet_large'
-        self.rnn = 'gru'       #  'gru' or 'lstm'
+        self.cnn = 'resnet50'  #'vgg16', 'inception_v3', 'xception, 'resnet50', 'nasnet_large'
+        self.rnn = 'lstm'       #  'gru' or 'lstm'
         self.embedding_dim = 256
         self.rnn_units = 512
-        #self.attention_units = 512
+        self.num_features = 512
 
         # about the weight initialization and regularization
         self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.

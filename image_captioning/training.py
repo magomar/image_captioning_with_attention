@@ -203,6 +203,7 @@ def train(config):
     logging.info("rnn = %s", config.rnn)
     logging.info("embedding_dim = %s", config.embedding_dim)
     logging.info("rnn_units = %s", config.rnn_units)
+    logging.info("num_features = %s", config.num_features)
     logging.info("weight_initialization = %s", config.weight_initialization)
     logging.info("batch_size = %s", config.batch_size)
     logging.info("optimizer = %s", config.optimizer)

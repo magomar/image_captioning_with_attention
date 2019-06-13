@@ -103,6 +103,7 @@ def image_preprocessing_function(cnn):
         image = tf.image.resize(image, image_size)
         image = preprocess_input(image)
         return image, image_file
+        
     return load_and_preprocess_image
 
 def get_image_encoder(cnn):
