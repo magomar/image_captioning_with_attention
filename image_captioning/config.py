@@ -8,19 +8,20 @@ class Config(object):
         self.log_dir = './log/'  # 'log' or None
 
         # about the model architecture
-        self.cnn = 'resnet50'  #'vgg16', 'inception_v3', 'xception, 'resnet50', 'nasnet_large'
+        self.cnn = 'inception_resnet_v2'  #'vgg16', 'inception_v3', 'xception, 'resnet50', 'nasnet_large','inception_resnet_v2'
         self.rnn = 'lstm'       #  'gru' or 'lstm'
         self.embedding_dim = 256
         self.rnn_units = 512
         self.num_features = 512
+        self.use_attention = False
 
         # about the weight initialization and regularization
-        self.weight_initialization = 'glorot_uniform'     # 'glorot', 'xavier', etc.
+        self.weight_initialization = 'glorot_uniform' # 'glorot', 'xavier', etc.
 
         # about the optimization
         self.num_epochs = 30
         self.batch_size = 64
-        self.optimizer = 'Adam'    # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
+        self.optimizer = 'Adam'  # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
@@ -31,7 +32,8 @@ class Config(object):
         self.max_caption_length = 15
 
         # about the saver (checkpoint manager)
-        self.max_checkpoints = 5
+        self.max_checkpoints = 10 # max number of checkpoints to keep 
+        self.checkpoints_frequency = 5 # number of epochs before saving checkpoint
         self.checkpoints_dir = './models/checkpoints/'
         self.summary_dir = './summary/' 
 

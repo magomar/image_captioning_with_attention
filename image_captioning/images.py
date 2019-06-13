@@ -15,7 +15,8 @@ IMAGE_SIZE = {'vgg16': (224,224),
               'inception_v3': (299,299),
               'xception': (299,299),
               'resnet50': (224,224),
-              'nasnet_large': (331,331)}
+              'nasnet_large': (331,331),
+              'inception_resnet_v2': (299,299)}
 
 def preprocess_images(config):
     """Extract image features and save them as numpy arrays.
@@ -96,6 +97,8 @@ def image_preprocessing_function(cnn):
         from tensorflow.keras.applications.nasnet import preprocess_input
     elif cnn == 'resnet50':
         from tensorflow.keras.applications.resnet50 import preprocess_input
+    elif cnn == 'inception_resnet_v2':
+        from tensorflow.keras.applications.inception_resnet_v2 import preprocess_input
 
     def load_and_preprocess_image(image_file):
         image = tf.io.read_file(image_file)
@@ -121,6 +124,8 @@ def get_image_encoder(cnn):
         from tensorflow.keras.applications.nasnet import NASNetLarge as PTModel
     elif cnn == 'resnet50':
         from tensorflow.keras.applications.resnet50 import ResNet50 as PTModel
+    elif cnn == 'inception_resnet_v2':
+        from tensorflow.keras.applications.inception_resnet_v2 import InceptionResNetV2 as PTModel
 
     image_model = PTModel(include_top=False, weights='imagenet')
     new_input = image_model.input

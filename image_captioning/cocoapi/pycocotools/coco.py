@@ -110,7 +110,9 @@ class COCO:
             for ann in self.dataset['annotations']:
                 catToImgs[ann['category_id']] += [ann['image_id']]
 
-        print('index created!')
+        print('Index created!')
+        print("Number of unique images: ", len(imgs))
+        print("Number of captions: ", len(anns))
 
         # create class members
         self.anns = anns
