@@ -23,6 +23,26 @@ class ImageCaptionModel(object):
         self.decoder = RNN_Decoder(embedding_dim, rnn, rnn_units, vocabulary.size, weight_initialization, use_attention)
         self.tokenizer = vocabulary.tokenizer
 
+class CNN_Encoder(tf.keras.Model):
+    """Encoder model to process the image features.
+
+    This encoder assumes images are pretrained using a CNN. 
+    That is, this model only has to add the fully connected layer
+    Instead of images it will receive as inputs the image features from the pretrained model
+    """
+
+    # We have already extracted the features and saved them as npy arrays
+    # This encoder only has to pass those features through a fully connected layer
+    def __init__(self, num_features):
+        super(CNN_Encoder, self).__init__()
+        self.fc = Dense(num_features)
+
+    def call(self, x):
+        # shape of x == (batch_size, patches, channels)
+        x = self.fc(x)
+        # shape of x after fc == (batch_size, patches, num_features)
+        x = tf.nn.relu(x)
+        return x
 
 class BahdanauAttention(tf.keras.Model):
     """Attention model based on Bahdanau soft attention model.
@@ -50,32 +70,12 @@ class BahdanauAttention(tf.keras.Model):
         # we get 1 at the last axis because we are applying score to self.V
         attention_weights = tf.nn.softmax(self.V(score), axis=1)
 
-        # context_vector shape after sum == (batch_size, num_features)
+        # context_vector shape == (batch_size, patches, num_features)
         context_vector = attention_weights * features
+        # context_vector shape after reduce_sum == (batch_size, num_features)
         context_vector = tf.reduce_sum(context_vector, axis=1)
 
         return context_vector, attention_weights
-
-class CNN_Encoder(tf.keras.Model):
-    """Encoder model to process the image features.
-
-    This encoder assumes images are pretrained using a CNN. 
-    That is, this model only has to add the fully connected layer
-    Instead of images it will receive as inputs the image features from the pretrained model
-    """
-
-    # We have already extracted the features and saved them as npy arrays
-    # This encoder only has to pass those features through a fully connected layer
-    def __init__(self, num_features):
-        super(CNN_Encoder, self).__init__()
-        self.fc = Dense(num_features)
-
-    def call(self, x):
-        # shape of x == (batch_size, patches, channels)
-        x = self.fc(x)
-        # shape of x after fc == (batch_size, patches, num_features)
-        x = tf.nn.relu(x)
-        return x
 
 class RNN_Decoder(tf.keras.Model):
     """Decoder model that takes output from encoder and uses RNN to generate captions.
@@ -104,7 +104,6 @@ class RNN_Decoder(tf.keras.Model):
 
     def call(self, x, features, hidden):
 
-        # defining attention as a separate model
         # shape of context_vector == (batch_size, num_features)
         # TODO Check: according to some tutorials context vector shape = (batch_size, hidden_size)
         # but I'm getting (batch_size, num_features)
@@ -112,14 +111,14 @@ class RNN_Decoder(tf.keras.Model):
         if self.use_attention:
             context_vector, attention_weights = self.attention(features, hidden)
         else:
+            context_vector = tf.reduce_sum(features, axis=1)
             attention_weights = None
 
-        # x shape after passing through embedding == (batch_size, 1, num_features)
+        # x shape after passing through embedding == (batch_size, 1, embedding_dim)
         x = self.embedding(x)
 
-        # x shape after concatenation == (batch_size, 1, num_features + hidden_size)
-        if self.use_attention:
-            x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
+        # x shape after concatenation == (batch_size, 1, num_features + embedding)
+        x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
         # passing the concatenated vector to the RNN
         if self.rnn_type == 'gru':
