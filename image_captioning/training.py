@@ -175,8 +175,9 @@ def fit(model, train_dataset, config):
         logging.info ('Epoch %d Loss %.6f', epoch + 1, total_loss / num_batches)
         logging.info ('Time taken for 1 epoch: %d sec\n', time.time() - start)
 
-        # Save checkpoint for the last epoch
-        ckpt_manager.save()
+        # Save checkpoint for the last epoch (with certain frequency)
+        if epoch % config.checkpoints_frequency == 0:
+            ckpt_manager.save()
 
     return batch_losses
 
@@ -204,6 +205,7 @@ def train(config):
     logging.info("embedding_dim = %s", config.embedding_dim)
     logging.info("rnn_units = %s", config.rnn_units)
     logging.info("num_features = %s", config.num_features)
+    logging.info("use_attention = %s", config.use_attention)
     logging.info("weight_initialization = %s", config.weight_initialization)
     logging.info("batch_size = %s", config.batch_size)
     logging.info("optimizer = %s", config.optimizer)
