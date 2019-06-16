@@ -174,11 +174,11 @@ def generate_captions_with_greedy_search(model, img_features, sequence_length, v
     # word index corresponding to '<start>', that is, shape = (64,1)
     dec_input = tf.expand_dims([vocabulary.start] * batch_size, 1)
     # Passes visual features through encoder
-    features = encoder(img_features)
+    features = encoder(img_features, training=False)
     predicted_sequences = []
     for t in range(sequence_length):
         # Passing input, features and hidden state through the decoder
-        predictions, hidden, _ = decoder(dec_input, features, hidden)
+        predictions, hidden, _ = decoder(dec_input, features, hidden, training=False)
         # predictions shape = (batch_size, vocabulary_size)
         predicted_word_idxs = tf.argmax(predictions, axis=1)
         predicted_sequences.append(predicted_word_idxs)

@@ -209,6 +209,7 @@ def train(config):
     logging.info("weight_initialization = %s", config.weight_initialization)
     logging.info("batch_size = %s", config.batch_size)
     logging.info("optimizer = %s", config.optimizer)
+    logging.info("dropout = %s", config.dropout)
 
     train_dataset, vocabulary = prepare_train_data(config)
     model = build_model(config, vocabulary)
