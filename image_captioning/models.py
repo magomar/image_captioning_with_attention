@@ -1,15 +1,14 @@
 import tensorflow as tf
 
 from tensorflow.keras import Model
-from tensorflow.keras.applications import InceptionV3, NASNetLarge
-from tensorflow.keras.layers import Dense, Embedding
+from tensorflow.keras.layers import Dense, Embedding, Dropout
 
 class ImageCaptionModel(object):
     """CNN-Encoder + RNN-Decoder model with attention for image captioning.
 
     """
 
-    def __init__(self, num_features, embedding_dim, rnn, rnn_units, weight_initialization, vocabulary, use_attention = True):
+    def __init__(self, num_features, embedding_dim, rnn, rnn_units, weight_initialization, dropout, vocabulary, use_attention = True):
         """Creates a new instance ofg ImageCaptionModel class.
         
         Arguments:
@@ -19,8 +18,13 @@ class ImageCaptionModel(object):
             weight_initialization (string): identifies the type of weight initialization 
             vocabulary (text.Vocabulary): Vocabulary from the training set
         """
-        self.encoder = CNN_Encoder(num_features)
-        self.decoder = RNN_Decoder(embedding_dim, rnn, rnn_units, vocabulary.size, weight_initialization, use_attention)
+        self.encoder = CNN_Encoder(num_features, dropout)
+        self.decoder = RNN_Decoder(embedding_dim, 
+                                    rnn, rnn_units,
+                                    vocabulary.size,
+                                    weight_initialization,
+                                    dropout,
+                                    use_attention)
         self.tokenizer = vocabulary.tokenizer
 
 class CNN_Encoder(tf.keras.Model):
@@ -33,12 +37,15 @@ class CNN_Encoder(tf.keras.Model):
 
     # We have already extracted the features and saved them as npy arrays
     # This encoder only has to pass those features through a fully connected layer
-    def __init__(self, num_features):
+    def __init__(self, num_features, dropout):
         super(CNN_Encoder, self).__init__()
+        self.do = Dropout(dropout)
         self.fc = Dense(num_features)
 
-    def call(self, x):
+    def call(self, x, training=True):
         # shape of x == (batch_size, patches, channels)
+        if training:
+            x = self.do(x)
         x = self.fc(x)
         # shape of x after fc == (batch_size, patches, num_features)
         x = tf.nn.relu(x)
@@ -49,13 +56,14 @@ class BahdanauAttention(tf.keras.Model):
 
     """
 
-    def __init__(self, units):
+    def __init__(self, units, dropout):
         super(BahdanauAttention, self).__init__()
         self.W1 = Dense(units)
         self.W2 = Dense(units)
+        self.do = Dropout(dropout)
         self.V = Dense(1)
 
-    def call(self, features, hidden):
+    def call(self, features, hidden, training=True):
         # features(CNN_encoder output) shape == (batch_size, patches, num_features)
         # patches = number of image patches in last conv layer, eg. inception is 8x8 = 64
 
@@ -65,7 +73,8 @@ class BahdanauAttention(tf.keras.Model):
 
         # score shape == (batch_size, patches, hidden_size)
         score = tf.nn.tanh(self.W1(features) + self.W2(hidden_with_time_axis))
-
+        if training:
+            score = self.do(score)
         # attention_weights shape == (batch_size, patches, 1)
         # we get 1 at the last axis because we are applying score to self.V
         attention_weights = tf.nn.softmax(self.V(score), axis=1)
@@ -82,7 +91,7 @@ class RNN_Decoder(tf.keras.Model):
 
     """
 
-    def __init__(self, embedding_dim, rnn, units, vocab_size, weight_initialization, use_attention):
+    def __init__(self, embedding_dim, rnn, units, vocab_size, weight_initialization, dropout, use_attention):
         super(RNN_Decoder, self).__init__()
         if rnn=='gru':
             from tensorflow.keras.layers import GRU as RNNLayer
@@ -99,17 +108,18 @@ class RNN_Decoder(tf.keras.Model):
                        return_state=True,
                        recurrent_initializer=weight_initialization)
         self.fc1 = Dense(units)
+        self.do = Dropout(dropout)
         self.fc2 = Dense(vocab_size)
-        self.attention = BahdanauAttention(units) if use_attention else None
+        self.attention = BahdanauAttention(units, dropout) if use_attention else None
 
-    def call(self, x, features, hidden):
+    def call(self, x, features, hidden, training=True):
 
         # shape of context_vector == (batch_size, num_features)
         # TODO Check: according to some tutorials context vector shape = (batch_size, hidden_size)
         # but I'm getting (batch_size, num_features)
         # shape of attention = (batch_size, patches, 1)
         if self.use_attention:
-            context_vector, attention_weights = self.attention(features, hidden)
+            context_vector, attention_weights = self.attention(features, hidden, training)
         else:
             context_vector = tf.reduce_sum(features, axis=1)
             attention_weights = None
@@ -128,7 +138,9 @@ class RNN_Decoder(tf.keras.Model):
 
         # shape == (batch_size, max_length, hidden_size)
         x = self.fc1(output)
-
+        if training:
+            x = self.do(x)
+        
         # x shape == (batch_size * max_length, hidden_size)
         x = tf.reshape(x, (-1, x.shape[2]))
 
@@ -159,6 +171,7 @@ def build_model(config, vocabulary):
                 config.rnn,
                 config.rnn_units,
                 config.weight_initialization,
+                config.dropout,
                 vocabulary,
                 use_attention= config.use_attention)
     return model

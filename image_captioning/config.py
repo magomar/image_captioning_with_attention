@@ -17,9 +17,10 @@ class Config(object):
         
         # about the weight initialization and regularization
         self.weight_initialization = 'glorot_uniform' # 'glorot', 'xavier', etc.
+        self.dropout = 0.3
 
         # about the optimization
-        self.num_epochs = 15
+        self.num_epochs = 10
         self.batch_size = 64
         self.optimizer = 'Adam'  # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
