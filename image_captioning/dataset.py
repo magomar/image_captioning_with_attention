@@ -88,8 +88,8 @@ def prepare_train_data(config):
     image_ids = coco.get_all_image_ids()
     dataset_size = len(image_ids)
     logging.info("Total number of instances in the training set: %d", dataset_size)
-    if config.filter_by_caption_length:
-        coco.filter_by_cap_len(config.max_caption_length)
+    # if config.filter_by_caption_length:
+    #     coco.filter_by_cap_len(config.max_caption_length)
     image_ids = coco.get_all_image_ids()
 
     if len(image_ids) < dataset_size:
@@ -137,8 +137,8 @@ def prepare_eval_data(config):
     image_ids = coco.get_unique_image_ids()
     dataset_size = len(image_ids)
     logging.info("Total number of instances in the validation set: %d", dataset_size)
-    if config.filter_by_caption_length:
-        coco.filter_by_cap_len(config.max_caption_length)
+    # if config.filter_by_caption_length:
+    #     coco.filter_by_cap_len(config.max_caption_length)
     image_ids = coco.get_unique_image_ids()
 
     if len(image_ids) < dataset_size:

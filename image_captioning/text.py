@@ -112,12 +112,13 @@ class Vocabulary(object):
         self.setup()
 
 def load_or_build_vocabulary(config, sentences=None):
-    vocabulary = Vocabulary(config.vocabulary_size)
+    vocabulary = Vocabulary(config.vocabulary_size,
+        sequence_length=config.max_length if config.limit_length else None)
     if not os.path.exists(config.vocabulary_file):
         if sentences is None:
             coco = COCO(config.train_captions_file)
-            if config.filter_by_caption_length:
-                coco.filter_by_cap_len(config.max_caption_length)
+            # if config.filter_by_caption_length:
+            #     coco.filter_by_cap_len(config.max_caption_length)
             sentences = coco.get_all_captions()
         logging.info("Building the vocabulary...")
         vocabulary.build(sentences)

@@ -286,6 +286,8 @@ class COCO:
             if not os.path.exists(fname):
                 urllib.urlretrieve(img['coco_url'], fname)
             print('downloaded %d/%d images (t=%.1fs)'%(i, N, time.time()- tic))
+    
+    ##########################
 
     def get_unique_image_ids(self):
         """Get the complete list of unique image ids

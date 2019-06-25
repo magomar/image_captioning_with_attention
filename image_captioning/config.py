@@ -10,27 +10,27 @@ class Config(object):
         # about the model architecture
         self.cnn = 'inception_resnet_v2'  #'vgg16', 'inception_v3', 'xception, 'resnet50', 'nasnet_large','inception_resnet_v2'
         self.rnn = 'lstm'       #  'gru' or 'lstm'
-        self.embedding_dim = 512
+        self.embedding_dim = 256
         self.rnn_units = 512
-        self.num_features = 512
+        self.num_features = 256
         self.use_attention = True
         
         # about the weight initialization and regularization
         self.weight_initialization = 'glorot_uniform' # 'glorot', 'xavier', etc.
-        self.dropout = 0.3
+        self.dropout = 0.5
 
         # about the optimization
-        self.num_epochs = 10
+        self.num_epochs = 16
         self.batch_size = 64
-        self.optimizer = 'Adam'  # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
+        self.optimizer = 'Nadam'  # 'Adam', 'RMSProp', 'Momentum' or 'SGD'
         # self.loss = 'sparse_categorical_crossentropy'
 
         # about the dataset
         self.dataset_name = 'COCO_2014'
         self.buffer_size = 1000
-        self.drop_remainder = False
-        self.filter_by_caption_length = True
-        self.max_caption_length = 15
+        self.drop_remainder = True
+        self.limit_length = True
+        self.max_length = 25
 
         # about the saver (checkpoint manager)
         self.max_checkpoints = 10 # max number of checkpoints to keep 
