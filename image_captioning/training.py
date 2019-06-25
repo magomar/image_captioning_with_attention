@@ -219,6 +219,6 @@ def train(config):
         logging.info('Total training time: %d seconds', time.time() - start)
         logging.info('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
         print('Final loss after %d epochs = %.6f' % (config.num_epochs, losses[-1]))
-        plot_loss(losses)
+        # plot_loss(losses)
     else:
         print("No training done, since number of epochs was reached")
