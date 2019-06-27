@@ -147,7 +147,8 @@ def fit(model, train_dataset, config):
     
     if resume_training:
         start_epoch = int(ckpt_manager.latest_checkpoint.split('-')[-1])
-        logging.info("Resuming training from epoch %d", start_epoch) 
+        if start_epoch < config.num_epochs:
+            logging.info("Resuming training from epoch %d", start_epoch) 
     else:
         start_epoch = 0
         logging.info("Starting training from scratch")
@@ -158,9 +159,9 @@ def fit(model, train_dataset, config):
     for epoch in range(start_epoch, num_epochs):
         start = time.time()
         total_loss = 0
-        
+        print("*** Epoch %d ***" % epoch)
         # Iterate over the batches of the dataset.
-        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch'):
+        for (batch, (img_features, target)) in tqdm(enumerate(dataset), desc='batch', total=num_batches):
             batch_loss, t_loss = train_step(model, img_features, target, optimizer, loss_function)
             total_loss += t_loss
 
@@ -174,8 +175,9 @@ def fit(model, train_dataset, config):
         logging.info ('Epoch %d Loss %.6f', epoch + 1, total_loss / num_batches)
         logging.info ('Time taken for 1 epoch: %d sec\n', time.time() - start)
 
-        # Save checkpoint for the last epoch
-        ckpt_manager.save()
+        # Save checkpoint for the last epoch (with certain frequency)
+        if epoch % config.checkpoints_frequency == 0:
+            ckpt_manager.save()
 
     return batch_losses
 
@@ -198,10 +200,25 @@ def train(config):
     Arguments:
         config (util.Config): Values for various configuration options
     """
+    logging.info("cnn = %s", config.cnn)
+    logging.info("rnn = %s", config.rnn)
+    logging.info("embedding_dim = %s", config.embedding_dim)
+    logging.info("rnn_units = %s", config.rnn_units)
+    logging.info("num_features = %s", config.num_features)
+    logging.info("use_attention = %s", config.use_attention)
+    logging.info("weight_initialization = %s", config.weight_initialization)
+    logging.info("batch_size = %s", config.batch_size)
+    logging.info("optimizer = %s", config.optimizer)
+    logging.info("dropout = %s", config.dropout)
+
     train_dataset, vocabulary = prepare_train_data(config)
     model = build_model(config, vocabulary)
     start = time.time()
     losses = fit(model, train_dataset, config)
-    logging.info('Total training time: %d seconds', time.time() - start)
-    logging.info ('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
-    plot_loss(losses)
+    if len(losses) > 0:
+        logging.info('Total training time: %d seconds', time.time() - start)
+        logging.info('Final loss after %d epochs = %.6f', config.num_epochs, losses[-1])
+        print('Final loss after %d epochs = %.6f' % (config.num_epochs, losses[-1]))
+        # plot_loss(losses)
+    else:
+        print("No training done, since number of epochs was reached")

@@ -41,6 +41,10 @@ def main(argv):
 
     del argv  # Unused.
     config = Config()
+
+    if config.log_dir is not None:
+        FLAGS.log_dir = config.log_dir
+
     config.phase = FLAGS.phase
 
     print('Running under Python {0[0]}.{0[1]}.{0[2]}'.format(sys.version_info),
@@ -54,9 +58,6 @@ def main(argv):
 
     if FLAGS.epochs:
         config.num_epochs=FLAGS.epochs
-
-    if FLAGS.examples:
-        config.num_train_examples=FLAGS.examples
 
     if FLAGS.load is False:
         config.resume_from_checkpoint = False 

@@ -110,7 +110,9 @@ class COCO:
             for ann in self.dataset['annotations']:
                 catToImgs[ann['category_id']] += [ann['image_id']]
 
-        print('index created!')
+        print('Index created!')
+        print("Number of unique images: ", len(imgs))
+        print("Number of captions: ", len(anns))
 
         # create class members
         self.anns = anns
@@ -284,15 +286,15 @@ class COCO:
             if not os.path.exists(fname):
                 urllib.urlretrieve(img['coco_url'], fname)
             print('downloaded %d/%d images (t=%.1fs)'%(i, N, time.time()- tic))
+    
+    ##########################
 
     def get_unique_image_ids(self):
         """Get the complete list of unique image ids
         """
         return list(self.imgs.keys())
 
-    def get_image_filenames(self, image_ids=[]):
-        if image_ids==[]:
-            image_ids = self.imgs.keys()
+    def get_image_filenames(self, image_ids):
         image_filenames = [self.imgs[img_id]['file_name'] for img_id in image_ids]
         return image_filenames
 
@@ -314,8 +316,6 @@ class COCO:
         return captions
 
     def get_image_files(self, image_dir, image_ids):
-        if image_ids==[]:
-            image_ids = self.imgs.keys()
         image_files = [os.path.join(image_dir,
                        self.imgs[img_id]['file_name']) for img_id in image_ids]
         return image_files
@@ -332,23 +332,29 @@ class COCO:
                 q = q + '.'
             ann['caption'] = q
 
-    # def filter_by_cap_len(self, max_cap_len):
-    #     print("Filtering the captions by length...")
-    #     keep_ann = {}
-    #     keep_img = {}
-    #     for ann in tqdm(self.dataset['annotations']):
-    #         if len(word_tokenize(ann['caption']))<=max_cap_len:
-    #             keep_ann[ann['id']] = keep_ann.get(ann['id'], 0) + 1
-    #             keep_img[ann['image_id']] = keep_img.get(ann['image_id'], 0) + 1
+    def filter_by_cap_len(self, max_cap_len):
+        print("Filtering the captions by length...")
+        remove_ann = set()
+        remove_img = set()
+        for ann in tqdm(self.dataset['annotations']):
+            if len(ann['caption'].split()) > max_cap_len:
+                img_id = ann['image_id']
+                remove_img.add(img_id)
+                anns_to_remove = [cap['id'] for cap in self.imgToAnns[img_id]]
+                remove_ann.update(anns_to_remove)
 
-    #     self.dataset['annotations'] = \
-    #         [ann for ann in self.dataset['annotations'] \
-    #         if keep_ann.get(ann['id'],0)>0]
-    #     self.dataset['images'] = \
-    #         [img for img in self.dataset['images'] \
-    #         if keep_img.get(img['id'],0)>0]
+        print("removing %d images and %d captions" % (len(remove_img), len(remove_ann)))
+        self.dataset['annotations'] = \
+            [ann for ann in self.dataset['annotations'] \
+            if ann['id'] not in remove_ann ]
 
-    #     self.createIndex()
+
+
+        self.dataset['images'] = \
+            [img for img in self.dataset['images'] \
+            if img['id'] not in remove_img ]
+
+        self.createIndex()
 
     # def filter_by_words(self, vocab):
     #     print("Filtering the captions by words...")
@@ -356,7 +362,7 @@ class COCO:
     #     keep_img = {}
     #     for ann in tqdm(self.dataset['annotations']):
     #         keep_ann[ann['id']] = 1
-    #         words_in_ann = word_tokenize(ann['caption'])
+    #         words_in_ann = ann['caption'].split()
     #         for word in words_in_ann:
     #             if word not in vocab:
     #                 keep_ann[ann['id']] = 0
